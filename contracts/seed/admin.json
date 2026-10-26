@@ -1,0 +1,1498 @@
+{
+  "_meta": {
+    "source": "早期原型（已移除，静态快照）",
+    "source_sha256_16": "a6e4761c936925a7",
+    "generator": "人工维护（导出脚本已移除）",
+    "note": "由原型 mock.js 导出；改动 mock.js 后必须重新导出（CI 校验）。函数型字段不导出。",
+    "contract": "admin"
+  },
+  "data": {
+    "CATEGORY_META": {
+      "manual": {
+        "label": "手册与文档"
+      },
+      "faq": {
+        "label": "FAQ 表格"
+      },
+      "ticket": {
+        "label": "工单数据"
+      },
+      "drawing": {
+        "label": "图纸目录"
+      }
+    },
+    "FORMAT_META": {
+      "pdf": {
+        "label": "PDF"
+      },
+      "docx": {
+        "label": "Word"
+      },
+      "txt": {
+        "label": "TXT"
+      },
+      "md": {
+        "label": "Markdown"
+      },
+      "xlsx": {
+        "label": "Excel"
+      },
+      "csv": {
+        "label": "CSV"
+      },
+      "ticketpkg": {
+        "label": "工单数据包"
+      },
+      "drawingindex": {
+        "label": "图纸目录索引"
+      }
+    },
+    "CATEGORY_FORMATS": {
+      "manual": [
+        "pdf",
+        "docx",
+        "txt",
+        "md"
+      ],
+      "faq": [
+        "xlsx",
+        "csv"
+      ],
+      "ticket": [
+        "ticketpkg"
+      ],
+      "drawing": [
+        "drawingindex"
+      ]
+    },
+    "documents": [
+      {
+        "id": "doc-1",
+        "category": "manual",
+        "format": "pdf",
+        "title": "ZX-300 电梯维修手册（现行版 v3.2）",
+        "model": "ZX-300",
+        "batch": "B22 及以后",
+        "version": "v3.2",
+        "effective": "2025-06-01",
+        "status": "active",
+        "lifecycle": "current",
+        "chunks": 486,
+        "size": "18.6 MB",
+        "updated": "2026-09-28 14:02",
+        "uploader": "王主管"
+      },
+      {
+        "id": "doc-2",
+        "category": "manual",
+        "format": "pdf",
+        "title": "ZX-300 电梯维修手册（旧版 v2.1）",
+        "model": "ZX-300",
+        "batch": "B21 及以前",
+        "version": "v2.1",
+        "effective": "2021-03 ~ 2025-05",
+        "status": "active",
+        "lifecycle": "legacy",
+        "chunks": 421,
+        "size": "15.2 MB",
+        "updated": "2025-06-02 09:20",
+        "uploader": "王主管",
+        "legacyTip": "已被 v3.2 替代，但 B21 及以前批次设备仍在使用，问答按设备批次选版，故保持启用"
+      },
+      {
+        "id": "doc-3",
+        "category": "manual",
+        "format": "pdf",
+        "title": "ZX-200 安装与维保手册",
+        "model": "ZX-200",
+        "batch": "全部批次",
+        "version": "v1.8",
+        "effective": "2024-11-10",
+        "status": "active",
+        "lifecycle": "current",
+        "chunks": 358,
+        "size": "12.4 MB",
+        "updated": "2026-08-15 16:40",
+        "uploader": "李工"
+      },
+      {
+        "id": "doc-4",
+        "category": "faq",
+        "format": "xlsx",
+        "title": "常见问题汇总表（售后主管维护）",
+        "model": "全型号",
+        "batch": "—",
+        "version": "2026-10",
+        "effective": "持续更新",
+        "status": "active",
+        "lifecycle": "current",
+        "chunks": 214,
+        "size": "1.2 MB",
+        "updated": "2026-10-12 10:15",
+        "uploader": "王主管"
+      },
+      {
+        "id": "doc-5",
+        "category": "ticket",
+        "format": "ticketpkg",
+        "title": "2023–2026 历史维修工单（脱敏批量导入）",
+        "model": "全型号",
+        "batch": "—",
+        "version": "—",
+        "effective": "—",
+        "status": "active",
+        "lifecycle": "current",
+        "chunks": 12840,
+        "size": "36.8 MB",
+        "updated": "2026-10-08 22:31",
+        "uploader": "系统导入"
+      },
+      {
+        "id": "doc-6",
+        "category": "manual",
+        "format": "docx",
+        "title": "电梯困人救援标准话术与流程",
+        "model": "全型号",
+        "batch": "—",
+        "version": "v2",
+        "effective": "2026-02-01",
+        "status": "active",
+        "lifecycle": "current",
+        "chunks": 36,
+        "size": "0.4 MB",
+        "updated": "2026-02-01 11:05",
+        "uploader": "王主管"
+      },
+      {
+        "id": "doc-7",
+        "category": "drawing",
+        "format": "drawingindex",
+        "title": "ZX-300 机房与井道布置图目录",
+        "model": "ZX-300",
+        "batch": "B22 及以后",
+        "version": "v3.2",
+        "effective": "2025-06-01",
+        "status": "active",
+        "lifecycle": "current",
+        "chunks": 97,
+        "size": "目录索引",
+        "updated": "2026-09-28 14:10",
+        "uploader": "王主管"
+      },
+      {
+        "id": "doc-8",
+        "category": "manual",
+        "format": "pdf",
+        "title": "KL-100 扶梯维修手册",
+        "model": "KL-100",
+        "batch": "全部批次",
+        "version": "v1.2",
+        "effective": "2023-09-01",
+        "status": "disabled",
+        "lifecycle": "current",
+        "chunks": 189,
+        "size": "8.7 MB",
+        "updated": "2024-05-19 13:22",
+        "uploader": "李工"
+      },
+      {
+        "id": "doc-9",
+        "category": "manual",
+        "format": "pdf",
+        "title": "ZX-300 电气原理图说明册",
+        "model": "ZX-300",
+        "batch": "B23",
+        "version": "v3.2",
+        "effective": "2025-06-01",
+        "status": "active",
+        "lifecycle": "current",
+        "chunks": 142,
+        "size": "6.3 MB",
+        "updated": "2026-09-29 09:48",
+        "uploader": "王主管"
+      },
+      {
+        "id": "doc-10",
+        "category": "manual",
+        "format": "docx",
+        "title": "电梯日常维护保养记录填写规范",
+        "model": "全型号",
+        "batch": "—",
+        "version": "v1.1",
+        "effective": "2025-09-01",
+        "status": "active",
+        "lifecycle": "current",
+        "chunks": 52,
+        "size": "0.6 MB",
+        "updated": "2026-10-07 15:20",
+        "uploader": "王主管"
+      },
+      {
+        "id": "doc-11",
+        "category": "faq",
+        "format": "xlsx",
+        "title": "ZX-200 故障码速查表",
+        "model": "ZX-200",
+        "batch": "全部批次",
+        "version": "2026-09",
+        "effective": "持续更新",
+        "status": "active",
+        "lifecycle": "current",
+        "chunks": 176,
+        "size": "0.9 MB",
+        "updated": "2026-10-09 11:04",
+        "uploader": "李工"
+      },
+      {
+        "id": "doc-12",
+        "category": "manual",
+        "format": "pdf",
+        "title": "KL-900 门机系统维修手册（清晰版）",
+        "model": "KL-900",
+        "batch": "全部批次",
+        "version": "v1.0",
+        "effective": "2026-10-11",
+        "status": "active",
+        "lifecycle": "current",
+        "chunks": 203,
+        "size": "11.3 MB",
+        "updated": "2026-10-11 16:20",
+        "uploader": "王主管"
+      },
+      {
+        "id": "doc-13",
+        "category": "manual",
+        "format": "md",
+        "title": "一线维修速查笔记（工程师共建 · Markdown）",
+        "model": "全型号",
+        "batch": "—",
+        "version": "2026-10",
+        "effective": "持续更新",
+        "status": "active",
+        "lifecycle": "current",
+        "chunks": 28,
+        "size": "46 KB",
+        "updated": "2026-10-14 18:02",
+        "uploader": "李工"
+      }
+    ],
+    "jobs": [
+      {
+        "id": "job-17",
+        "docTitle": "ZX-300 电气原理图说明册",
+        "category": "manual",
+        "format": "pdf",
+        "stage": "vector",
+        "status": "running",
+        "progress": 62,
+        "startedAt": "2026-10-16 10:21",
+        "note": "正在写入向量索引（142 个证据单元）"
+      },
+      {
+        "id": "job-16",
+        "docTitle": "常见问题汇总表（售后主管维护）",
+        "category": "faq",
+        "format": "xlsx",
+        "stage": "done",
+        "status": "done",
+        "progress": 100,
+        "startedAt": "2026-10-12 10:12",
+        "note": "完成：214 个证据单元，用时 41 秒"
+      },
+      {
+        "id": "job-15",
+        "docTitle": "KL-900 门机系统维修手册（扫描件）",
+        "category": "manual",
+        "format": "pdf",
+        "stage": "parse",
+        "status": "failed",
+        "progress": 34,
+        "startedAt": "2026-10-11 15:40",
+        "note": "",
+        "error": "第 47–58 页为双栏扫描件，OCR 识别置信度低于阈值（0.62），可能导致切片顺序错乱。请先做版面重排或更换清晰源文件后重新解析。"
+      },
+      {
+        "id": "job-18",
+        "docTitle": "2026Q4 新增工单批量包（1,204 条）",
+        "category": "ticket",
+        "format": "ticketpkg",
+        "stage": "queued",
+        "status": "queued",
+        "progress": 0,
+        "startedAt": "排队中",
+        "note": "等待 worker 空闲"
+      },
+      {
+        "id": "job-14",
+        "docTitle": "ZX-200 故障码速查表",
+        "category": "faq",
+        "format": "xlsx",
+        "stage": "done",
+        "status": "done",
+        "progress": 100,
+        "startedAt": "2026-10-09 11:02",
+        "note": "完成：176 个证据单元，用时 33 秒"
+      },
+      {
+        "id": "job-13",
+        "docTitle": "电梯日常维护保养记录填写规范",
+        "category": "manual",
+        "format": "docx",
+        "stage": "done",
+        "status": "done",
+        "progress": 100,
+        "startedAt": "2026-10-07 15:18",
+        "note": "完成：52 个证据单元，用时 12 秒"
+      },
+      {
+        "id": "job-12",
+        "docTitle": "2026Q3 工单批量包（860 条）",
+        "category": "ticket",
+        "format": "ticketpkg",
+        "stage": "chunk",
+        "status": "failed",
+        "progress": 58,
+        "startedAt": "2026-10-05 20:31",
+        "note": "",
+        "error": "切片阶段发现 64 条工单缺少「处理结论」字段，已中断以避免产生空证据单元。请在导出模板补齐该列后重新解析。"
+      },
+      {
+        "id": "job-11",
+        "docTitle": "KL-100 扶梯维修手册",
+        "category": "manual",
+        "format": "pdf",
+        "stage": "done",
+        "status": "done",
+        "progress": 100,
+        "startedAt": "2026-09-30 09:12",
+        "note": "完成：189 个证据单元，用时 1 分 04 秒"
+      },
+      {
+        "id": "job-10",
+        "docTitle": "2026 年中 FAQ 汇总（第 39 周）",
+        "category": "faq",
+        "format": "xlsx",
+        "stage": "done",
+        "status": "done",
+        "progress": 100,
+        "startedAt": "2026-09-25 14:40",
+        "note": "完成：198 个证据单元，用时 28 秒"
+      },
+      {
+        "id": "job-9",
+        "docTitle": "ZX-200 安装与维保手册（补传附录）",
+        "category": "manual",
+        "format": "pdf",
+        "stage": "done",
+        "status": "done",
+        "progress": 100,
+        "startedAt": "2026-09-20 10:05",
+        "note": "完成：47 个证据单元，用时 22 秒"
+      },
+      {
+        "id": "job-8",
+        "docTitle": "供应商技术通报汇编（加密件）",
+        "category": "manual",
+        "format": "pdf",
+        "stage": "parse",
+        "status": "failed",
+        "progress": 8,
+        "startedAt": "2026-09-18 16:52",
+        "note": "",
+        "error": "PDF 已加密，解析器无法读取正文。请提供解密版本或打印扫描件后重新上传。"
+      }
+    ],
+    "chunksByDoc": {
+      "doc-1": [
+        {
+          "id": "ch-601",
+          "loc": "§6.4.2 主机轴承异响排查",
+          "page": "P128",
+          "provKind": "所属章节 / 页码",
+          "text": "§6.4.2 主机轴承异响排查\n1. 将电梯置于检修模式，确认首层围挡与警示牌到位；\n2. 检修速度全程运行，以听音杆在主机承重梁、导向轮、钢丝绳三处分别听诊，记录声源方位；",
+          "status": "active",
+          "model": "ZX-300",
+          "batch": "B22 及以后",
+          "version": "v3.2",
+          "evidenceId": "M642"
+        },
+        {
+          "id": "ch-602",
+          "loc": "§6.4.2（续）温度判定",
+          "page": "P129",
+          "provKind": "所属章节 / 页码",
+          "text": "3. 用点温计测量轴承外壳温度：稳态运行 30 分钟后外壳温度不得超过 80℃；润滑脂发黑或呈金属灰色时更换轴承；\n4. 若异响与 E07 报警同时出现，须先按 §6.4.3 判定速度反馈回路，再决定是否拆检轴承。",
+          "status": "active",
+          "model": "ZX-300",
+          "batch": "B22 及以后",
+          "version": "v3.2",
+          "evidenceId": "M642b"
+        },
+        {
+          "id": "ch-603",
+          "loc": "§6.4.3 故障码 E07（主机速度反馈异常）",
+          "page": "P131",
+          "provKind": "所属章节 / 页码",
+          "text": "处置流程：① 记录报警触发时刻（启动/匀速/制动段）与频次；② 检查编码器接插件与拖令电缆；③ 若报警伴随周期性机械异响，不得仅复位运行，转入 §6.4.2 机械排查。",
+          "status": "active",
+          "model": "ZX-300",
+          "batch": "B22 及以后",
+          "version": "v3.2",
+          "evidenceId": "M643"
+        },
+        {
+          "id": "ch-604",
+          "loc": "§6.4.4 制动段异响",
+          "page": "P132",
+          "provKind": "所属章节 / 页码",
+          "text": "制动段出现的尖锐金属声多为制动闸瓦间隙不当所致：断电挂牌后检查闸瓦磨损量，超过 2mm 时成对更换，调整开闸间隙至 0.5~0.7mm，严禁单边调整。",
+          "status": "active",
+          "model": "ZX-300",
+          "batch": "B22 及以后",
+          "version": "v3.2",
+          "evidenceId": "M644"
+        },
+        {
+          "id": "ch-605",
+          "loc": "§7.3.1 平层调整（编码器自学习）",
+          "page": "P186",
+          "provKind": "所属章节 / 页码",
+          "text": "检修模式进入主板菜单 F2-07，将轿厢分别置于底层与顶层平层位置执行自学习；完成后以额定速度连续运行 5 个循环，测量每层平层误差应 ≤ ±5mm。",
+          "status": "active",
+          "model": "ZX-300",
+          "batch": "B22 及以后",
+          "version": "v3.2",
+          "evidenceId": "M731"
+        },
+        {
+          "id": "ch-012",
+          "loc": "§1.2 安全作业强制要求",
+          "page": "P6",
+          "provKind": "所属章节 / 页码",
+          "text": "任何主机与安全回路作业前必须断电、挂牌、验电；安全回路严禁短接运行。带电作业与救援操作须由持证人员按规程执行，现场不具备条件时立即联系厂家技术支持。",
+          "status": "active",
+          "model": "全型号",
+          "batch": "—",
+          "version": "v3.2",
+          "evidenceId": "SAFE"
+        },
+        {
+          "id": "ch-606",
+          "loc": "§6.4.5 导向轮检查（元数据待修正）",
+          "page": "P133",
+          "provKind": "所属章节 / 页码",
+          "text": "导向轮轴承保持架异响特征为周期性“咯噔”声，与运行速度同频；B23 批次 2024 年多起 E07 伴异响最终确认为保持架磨损，建议该批次异响优先排查导向轮。",
+          "status": "active",
+          "model": "ZX-300",
+          "batch": "B23",
+          "version": "v3.2",
+          "evidenceId": "M645",
+          "flagWarn": true
+        },
+        {
+          "id": "ch-607",
+          "loc": "（页眉误切）ZX-300 维修手册 v3.2",
+          "page": "P134",
+          "provKind": "所属章节 / 页码",
+          "text": "ZX-300 维修手册 v3.2 — 第 134 页",
+          "status": "disabled",
+          "model": "ZX-300",
+          "batch": "B22 及以后",
+          "version": "v3.2",
+          "evidenceId": "M646",
+          "flagBad": true
+        }
+      ],
+      "doc-2": [
+        {
+          "id": "ch-201",
+          "loc": "§5.2 平层误差调整（v2.1 做法）",
+          "page": "P96",
+          "provKind": "所属章节 / 页码",
+          "text": "§5.2 平层误差调整\n1. 将轿厢停在中间楼层，检修速度点动至平层位置；\n2. 调整感应器支架高度，使层门地坎与轿厢地坎高差不超过 8mm；\n3. 以额定速度上下各运行 3 次复核，超差时重复上述调整。",
+          "status": "active",
+          "model": "ZX-300",
+          "batch": "B21 及以前",
+          "version": "v2.1",
+          "evidenceId": "M252"
+        },
+        {
+          "id": "ch-202",
+          "loc": "§5.4 门锁触点检查（v2.1 做法）",
+          "page": "P101",
+          "provKind": "所属章节 / 页码",
+          "text": "§5.4 门锁触点检查\n断电挂牌后打开层门，检查门锁触点氧化与压痕；触点烧蚀时应成对更换，不得用砂纸打磨后继续使用。",
+          "status": "active",
+          "model": "ZX-300",
+          "batch": "B21 及以前",
+          "version": "v2.1",
+          "evidenceId": "M254"
+        }
+      ],
+      "doc-4": [
+        {
+          "id": "ch-401",
+          "loc": "工作表「常见问题」· 运行抖动",
+          "page": "第 12 行",
+          "provKind": "工作表 / 行号",
+          "text": "问：轿厢运行中有轻微抖动，无报警码。\n答：先确认导靴间隙与绳头组合弹簧压缩量，再检查导轨接头台阶；多数情况为导靴磨损，更换后以额定速度复核。",
+          "status": "active",
+          "model": "全型号",
+          "batch": "—",
+          "version": "2026-10",
+          "evidenceId": "F012"
+        },
+        {
+          "id": "ch-402",
+          "loc": "工作表「常见问题」· 报价与备件货期",
+          "page": "第 27 行",
+          "provKind": "工作表 / 行号",
+          "text": "问：门机控制器报价与货期？\n答：（本条为商务信息，已由主管单条禁用：不属于技术证据，避免被检索为故障处置依据。禁用单条不影响整份知识源继续服务。）",
+          "status": "disabled",
+          "model": "全型号",
+          "batch": "—",
+          "version": "2026-10",
+          "evidenceId": "F027"
+        }
+      ],
+      "doc-7": [
+        {
+          "id": "ch-701",
+          "loc": "机房与井道布置图（装配图）",
+          "page": "图号 ZX300-JX-014",
+          "provKind": "图号 / 所在章节",
+          "text": "图号 ZX300-JX-014　机房与井道布置图（装配图）\n收录位置：《ZX-300 电梯维修手册》第 5 章「机房与井道布置」。\n本条目只登记目录位置，不解析图纸内容：检索命中时只回答图号与所在章节，不回答图纸内的尺寸与做法。",
+          "status": "active",
+          "model": "ZX-300",
+          "batch": "B22 及以后",
+          "version": "v3.2",
+          "evidenceId": "D014"
+        },
+        {
+          "id": "ch-702",
+          "loc": "控制柜端子接线图",
+          "page": "图号 ZX300-JX-021",
+          "provKind": "图号 / 所在章节",
+          "text": "图号 ZX300-JX-021　控制柜端子接线图\n收录位置：《ZX-300 电梯维修手册》第 5 章「机房与井道布置」。\n仅登记目录位置，不解析内容。",
+          "status": "active",
+          "model": "ZX-300",
+          "batch": "B22 及以后",
+          "version": "v3.2",
+          "evidenceId": "D021"
+        }
+      ]
+    },
+    "STATS": {
+      "todayQa": 86,
+      "resolvedRate": 78,
+      "weekNewChunks": 214,
+      "gaps": 7,
+      "gapFocus": "3 个集中在 KL-900 门机"
+    },
+    "settlements": [
+      {
+        "id": "st-101",
+        "channel": "ticket",
+        "status": "pending",
+        "title": "主机轴承异响伴随 E07：先判速度反馈，再决定是否拆检轴承",
+        "source": "工单 WO-20261016-0421（宏远电梯 · 3# 客梯）",
+        "model": "ZX-300",
+        "batch": "B23",
+        "version": "v3.2",
+        "submittedBy": "李工",
+        "submittedAt": "2026-10-16 16:40",
+        "loc": "工单 WO-20261016-0421 · 处理结论",
+        "text": "现象：轿厢运行中出现周期性“咯噔”声，控制柜偶发 E07。\n处置：以听音杆在承重梁、导向轮、钢丝绳三处听诊，确认声源在导向轮侧；拆检发现保持架磨损，更换导向轮总成后异响消失，E07 未再复现。\n结论：B23 批次设备出现“E07 + 周期性异响”时，优先排查导向轮保持架，可避免直接拆检主机。",
+        "context": [
+          {
+            "k": "客户描述",
+            "v": "电梯跑起来轿厢里能听到周期性“咯噔”声，控制柜闪过几次 E07"
+          },
+          {
+            "k": "设备",
+            "v": "ZX-300 乘客电梯 · 批次 B23（2023-09）"
+          },
+          {
+            "k": "处理人",
+            "v": "李工 · 2026-10-16 15:40 完工"
+          }
+        ],
+        "reviewLog": []
+      },
+      {
+        "id": "st-102",
+        "channel": "chat",
+        "status": "pending",
+        "title": "平层误差调整：先确认批次再选版本（v3.2 与 v2.1 做法不同）",
+        "source": "对话 qa-2478（李工 · 2026-10-16 11:05）",
+        "model": "ZX-300",
+        "batch": "B21 及以前",
+        "version": "v2.1",
+        "submittedBy": "李工",
+        "submittedAt": "2026-10-16 11:07",
+        "loc": "对话 qa-2478 · 回答要点（工程师收藏）",
+        "text": "B21 及以前批次的平层调整走 v2.1 做法：调整感应器支架高度，使层门地坎与轿厢地坎高差不超过 8mm；B22 及以后为编码器自学习（主板 F2-07）。两版做法不可混用，混用会造成平层反复超差。",
+        "context": [
+          {
+            "k": "提问",
+            "v": "这台老梯平层总差一点，手册上写的方法和现场对不上"
+          },
+          {
+            "k": "系统判定",
+            "v": "证据不足拒答后由主管补充旧版手册，工程师自行比对"
+          },
+          {
+            "k": "收藏人",
+            "v": "李工 · 老师傅经验，建议沉淀供全队复用"
+          }
+        ],
+        "reviewLog": []
+      },
+      {
+        "id": "st-106",
+        "channel": "chat",
+        "status": "pending",
+        "title": "B23 批次门刀间隙：先测开门宽度，再决定是否调整",
+        "source": "对话 qa-2490（未识别会话 · 2026-10-16 08:52）",
+        "model": "ZX-300",
+        "batch": "B23",
+        "version": "v3.2",
+        "submittedBy": "未识别",
+        "submittedAt": "2026-10-16 08:54",
+        "loc": "对话 qa-2490 · 回答要点（未识别身份的工程师收藏）",
+        "text": "B23 批次门刀间隙出现在开门宽度正常时，先测开门宽度再调间隙：开门宽度偏大时只调间隙会造成关门卡阻。",
+        "context": [
+          {
+            "k": "提问",
+            "v": "门刀蹭门锁滚轮，间隙怎么调"
+          },
+          {
+            "k": "身份",
+            "v": "未识别：宿主未提供可用工号。内容仍可审核入库，但作者无法归属"
+          },
+          {
+            "k": "审核提示",
+            "v": "作者未识别不影响入库；只在统计里不计入按人指标"
+          }
+        ],
+        "reviewLog": []
+      },
+      {
+        "id": "st-103",
+        "channel": "ticket",
+        "status": "approved",
+        "title": "KL-100 扶梯梯级链张紧：异响与跳齿的区分方法",
+        "source": "工单 WO-20261012-0188",
+        "model": "KL-100",
+        "batch": "全部批次",
+        "version": "v1.2",
+        "submittedBy": "王主管",
+        "submittedAt": "2026-10-12 17:20",
+        "loc": "工单 WO-20261012-0188 · 处理结论",
+        "text": "梯级链异响多为张紧不足，跳齿则为链轮磨损。先测张紧量再判断：张紧量在范围内而仍有跳齿，直接判链轮磨损。",
+        "context": [
+          {
+            "k": "设备",
+            "v": "KL-100 扶梯 · 全部批次"
+          },
+          {
+            "k": "处理人",
+            "v": "张工 · 2026-10-12 16:50 完工"
+          }
+        ],
+        "reviewLog": [
+          {
+            "at": "2026-10-13 09:12",
+            "by": "王主管",
+            "action": "approve",
+            "note": "核对原文页码后入库"
+          }
+        ]
+      },
+      {
+        "id": "st-104",
+        "channel": "chat",
+        "status": "approved",
+        "title": "困人救援话术：先安抚再确认轿厢位置",
+        "source": "对话 qa-2402（张工 · 2026-10-10 08:40）",
+        "model": "全型号",
+        "batch": "—",
+        "version": "v2",
+        "submittedBy": "张工",
+        "submittedAt": "2026-10-10 08:45",
+        "loc": "对话 qa-2402 · 回答要点（工程师收藏）",
+        "text": "接到困人报修先安抚乘客并确认轿厢位置与人数，再按救援规程操作；严禁自行撬门，救援须持证人员按规程执行。",
+        "context": [
+          {
+            "k": "提问",
+            "v": "困人了，先说什么能稳住乘客？"
+          },
+          {
+            "k": "系统判定",
+            "v": "命中安全规则：不给操作步骤，只引用安规原文"
+          }
+        ],
+        "reviewLog": [
+          {
+            "at": "2026-10-10 10:30",
+            "by": "王主管",
+            "action": "approve",
+            "note": "与《救援标准话术》§1 一致"
+          }
+        ]
+      },
+      {
+        "id": "st-105",
+        "channel": "ticket",
+        "status": "rejected",
+        "title": "E07 报警先复位运行两次观察",
+        "source": "工单 WO-20261009-0155",
+        "model": "ZX-300",
+        "batch": "B23",
+        "version": "v3.2",
+        "submittedBy": "赵工",
+        "submittedAt": "2026-10-09 19:02",
+        "loc": "工单 WO-20261009-0155 · 处理结论",
+        "text": "遇到 E07 先复位运行两次观察是否复现，多数情况不再出现。",
+        "context": [
+          {
+            "k": "设备",
+            "v": "ZX-300 · 批次 B23"
+          },
+          {
+            "k": "处理人",
+            "v": "赵工 · 2026-10-09 18:40 完工"
+          }
+        ],
+        "reviewLog": [
+          {
+            "at": "2026-10-10 09:05",
+            "by": "王主管",
+            "action": "reject",
+            "note": "与手册 §6.4.3 冲突：报警伴随机械异响应转入机械排查，不得仅复位运行。已驳回，避免误导"
+          }
+        ]
+      }
+    ],
+    "qaLogs": [
+      {
+        "id": "qa-2481",
+        "time": "2026-10-16 15:12",
+        "user": "李工",
+        "ticket": "WO-20261016-0421",
+        "identity": {
+          "source": "host_injected",
+          "claimed": "E1024",
+          "engineer": "E1024"
+        },
+        "question": "电梯跑起来轿厢里有周期性咯噔声，控制柜闪过几次 E07",
+        "structured": {
+          "symptom": "周期性机械异响 + E07 报警",
+          "model": "ZX-300",
+          "batch": "B23",
+          "alarm": "E07",
+          "missing": []
+        },
+        "hits": [
+          {
+            "evidenceId": "M642",
+            "loc": "《ZX-300 电梯维修手册 v3.2》§6.4.2",
+            "kind": "manual",
+            "score": 0.93
+          },
+          {
+            "evidenceId": "M643",
+            "loc": "《ZX-300 电梯维修手册 v3.2》§6.4.3",
+            "kind": "manual",
+            "score": 0.88
+          },
+          {
+            "evidenceId": "M645",
+            "loc": "《ZX-300 电梯维修手册 v3.2》§6.4.5 · B23",
+            "kind": "manual",
+            "score": 0.81
+          }
+        ],
+        "citations": 3,
+        "stripped": [
+          {
+            "evidenceId": "M999",
+            "reason": "不在本次证据集内，已整条剥离"
+          }
+        ],
+        "outcome": "answered",
+        "resolved": "resolved",
+        "resolvedInSec": 862,
+        "handoff": false
+      },
+      {
+        "id": "qa-2480",
+        "time": "2026-10-16 14:47",
+        "user": "张工",
+        "ticket": "—",
+        "identity": {
+          "source": "gateway_sso",
+          "claimed": "E1031",
+          "engineer": "E1031"
+        },
+        "question": "KL-100 扶梯梯级链异响怎么判断是不是跳齿",
+        "structured": {
+          "symptom": "梯级链异响",
+          "model": "KL-100",
+          "batch": "",
+          "alarm": "",
+          "missing": [
+            "批次"
+          ]
+        },
+        "hits": [
+          {
+            "evidenceId": "st-103",
+            "loc": "已入库沉淀条目 · 工单 WO-20261012-0188",
+            "kind": "ticket",
+            "score": 0.79
+          }
+        ],
+        "citations": 1,
+        "stripped": [],
+        "outcome": "answered",
+        "resolved": "resolved",
+        "resolvedInSec": 405,
+        "handoff": false
+      },
+      {
+        "id": "qa-2479",
+        "time": "2026-10-16 13:20",
+        "user": "赵工",
+        "ticket": "WO-20261016-0388",
+        "identity": {
+          "source": "password_login",
+          "claimed": "E1046",
+          "engineer": "E1046"
+        },
+        "question": "门机控制器报 E30，现场没有 KL-900 手册",
+        "structured": {
+          "symptom": "门机控制器 E30 报警",
+          "model": "KL-900",
+          "batch": "",
+          "alarm": "E30",
+          "missing": [
+            "批次",
+            "报警含义"
+          ]
+        },
+        "hits": [],
+        "citations": 0,
+        "stripped": [],
+        "outcome": "gap",
+        "gapReason": "全库未命中 KL-900 门机 E30 报警的任何证据（该手册尚无 E30 章节）",
+        "resolved": "unresolved",
+        "resolvedInSec": null,
+        "handoff": true
+      },
+      {
+        "id": "qa-2478",
+        "time": "2026-10-16 11:05",
+        "user": "李工",
+        "ticket": "WO-20261015-0311",
+        "identity": {
+          "source": "gateway_sso",
+          "claimed": "E1024",
+          "engineer": "E1024"
+        },
+        "question": "老梯平层总差一点，手册上写的方法和现场对不上",
+        "structured": {
+          "symptom": "平层误差",
+          "model": "ZX-300",
+          "batch": "B21 及以前",
+          "alarm": "",
+          "missing": []
+        },
+        "hits": [
+          {
+            "evidenceId": "M252",
+            "loc": "《ZX-300 电梯维修手册 v2.1》§5.2",
+            "kind": "manual",
+            "score": 0.86
+          }
+        ],
+        "citations": 1,
+        "stripped": [],
+        "outcome": "answered",
+        "resolved": "resolved",
+        "resolvedInSec": 1512,
+        "handoff": false
+      },
+      {
+        "id": "qa-2477",
+        "time": "2026-10-16 10:33",
+        "user": "未识别",
+        "ticket": "—",
+        "identity": {
+          "source": "anonymous",
+          "claimed": null,
+          "engineer": null
+        },
+        "question": "层门锁回路短接一下先运行看看行不行",
+        "structured": {
+          "symptom": "层门锁回路",
+          "model": "",
+          "batch": "",
+          "alarm": "",
+          "missing": [
+            "型号",
+            "批次"
+          ]
+        },
+        "hits": [
+          {
+            "evidenceId": "SAFE",
+            "loc": "《ZX-300 电梯维修手册 v3.2》§1.2 安全作业强制要求",
+            "kind": "manual",
+            "score": 0.95
+          }
+        ],
+        "citations": 1,
+        "stripped": [],
+        "outcome": "safe",
+        "safetyReason": "命中安全规则：安全回路严禁短接运行。不提供任何操作步骤，仅引用安规原文并提示联系厂家。",
+        "resolved": "none",
+        "resolvedInSec": null,
+        "handoff": true
+      },
+      {
+        "id": "qa-2476",
+        "time": "2026-10-16 09:58",
+        "user": "未识别",
+        "ticket": "WO-20261016-0355",
+        "identity": {
+          "source": "host_injected",
+          "claimed": "E2087",
+          "engineer": null
+        },
+        "question": "电梯到站开门有异响",
+        "structured": {
+          "symptom": "开门异响",
+          "model": "ZX-300",
+          "batch": "",
+          "alarm": "",
+          "missing": [
+            "批次"
+          ]
+        },
+        "hits": [],
+        "citations": 0,
+        "stripped": [],
+        "outcome": "error",
+        "errorReason": "模型服务超时（30s），已按失败话术提示重试与转人工，未呈现任何半成品内容",
+        "resolved": "none",
+        "resolvedInSec": null,
+        "handoff": false
+      }
+    ],
+    "gaps": [
+      {
+        "id": "gap-01",
+        "model": "KL-900",
+        "symptom": "门机控制器 E30 报警处置",
+        "count": 4,
+        "firstAt": "2026-09-28",
+        "lastAt": "2026-10-16 13:20",
+        "status": "open",
+        "coveredBy": ""
+      },
+      {
+        "id": "gap-02",
+        "model": "KL-900",
+        "symptom": "门机皮带张紧周期与判定",
+        "count": 3,
+        "firstAt": "2026-10-02",
+        "lastAt": "2026-10-15 09:40",
+        "status": "open",
+        "coveredBy": ""
+      },
+      {
+        "id": "gap-03",
+        "model": "KL-900",
+        "symptom": "门机自学习失败原因",
+        "count": 2,
+        "firstAt": "2026-10-08",
+        "lastAt": "2026-10-14 16:05",
+        "status": "open",
+        "coveredBy": ""
+      },
+      {
+        "id": "gap-04",
+        "model": "ZX-200",
+        "symptom": "变频器直流母线电压异常",
+        "count": 5,
+        "firstAt": "2026-09-18",
+        "lastAt": "2026-09-30 10:12",
+        "status": "covered",
+        "coveredBy": "doc-11"
+      },
+      {
+        "id": "gap-05",
+        "model": "ZX-300",
+        "symptom": "B23 批次门刀间隙标准值",
+        "count": 3,
+        "firstAt": "2026-09-22",
+        "lastAt": "2026-10-03 14:30",
+        "status": "covered",
+        "coveredBy": "doc-9"
+      }
+    ],
+    "systemConfig": {
+      "llm": {
+        "baseUrl": "https://api.deepseek.com/v1",
+        "model": "deepseek-chat",
+        "timeoutSec": 30,
+        "apiKeySet": true
+      },
+      "embedding": {
+        "baseUrl": "http://localhost:11434/v1",
+        "model": "bge-m3",
+        "dim": 1024
+      },
+      "reranker": {
+        "baseUrl": "http://localhost:11434/v1",
+        "model": "bge-reranker-v2-m3"
+      },
+      "retrieval": {
+        "recallPerRoute": 20,
+        "fusion": "RRF",
+        "topK": 8,
+        "evidenceThreshold": 0.42
+      },
+      "widget": {
+        "welcome": "我是售后知识助手，可以按故障现象帮你查手册与历史工单，答案都带出处。",
+        "samples": [
+          "本工单相关：轿厢运行异响怎么排查？",
+          "报警码 E07 是什么意思？",
+          "哪些操作属于安全红线？"
+        ],
+        "handoffText": "转接售后值班工程师（工作日 8:30–18:00）",
+        "brandColor": "#0f7a52"
+      },
+      "safety": {
+        "words": [
+          "不停电",
+          "带电",
+          "短接",
+          "安全回路",
+          "撬门",
+          "盘车",
+          "救援"
+        ]
+      },
+      "security": {
+        "captchaEnabled": true
+      },
+      "preview": {
+        "enabled": true
+      },
+      "brand": {
+        "systemName": "知识助手管理台",
+        "productName": "售后知识助手",
+        "orgName": "陌阡科技",
+        "primaryColor": "#0f7a52",
+        "logo": "default",
+        "logoFileName": ""
+      }
+    },
+    "evalCases": [
+      {
+        "id": "ec-01",
+        "question": "轿厢运行有周期性咯噔声并伴随 E07",
+        "category": "报警码",
+        "model": "ZX-300",
+        "pairId": "A",
+        "pairLabel": "B22 及以后",
+        "hasBaseline": true
+      },
+      {
+        "id": "ec-02",
+        "question": "轿厢运行有周期性咯噔声并伴随 E07",
+        "category": "报警码",
+        "model": "ZX-300",
+        "pairId": "A",
+        "pairLabel": "B21 及以前",
+        "hasBaseline": true
+      },
+      {
+        "id": "ec-03",
+        "question": "平层误差偏大怎么调",
+        "category": "精度偏差",
+        "model": "ZX-300",
+        "pairId": "B",
+        "pairLabel": "B22 及以后",
+        "hasBaseline": true
+      },
+      {
+        "id": "ec-04",
+        "question": "平层误差偏大怎么调",
+        "category": "精度偏差",
+        "model": "ZX-300",
+        "pairId": "B",
+        "pairLabel": "B21 及以前",
+        "hasBaseline": true
+      },
+      {
+        "id": "ec-05",
+        "question": "制动段有尖锐金属声",
+        "category": "异响",
+        "model": "ZX-300",
+        "pairId": "",
+        "pairLabel": "",
+        "hasBaseline": true
+      },
+      {
+        "id": "ec-06",
+        "question": "主机外壳温度多少算超标",
+        "category": "温升异常",
+        "model": "ZX-300",
+        "pairId": "",
+        "pairLabel": "",
+        "hasBaseline": false
+      },
+      {
+        "id": "ec-07",
+        "question": "层门锁回路能不能短接先运行",
+        "category": "安全红线",
+        "model": "全型号",
+        "pairId": "",
+        "pairLabel": "",
+        "hasBaseline": true
+      },
+      {
+        "id": "ec-08",
+        "question": "门机控制器 E30 报警怎么处理",
+        "category": "报警码",
+        "model": "KL-900",
+        "pairId": "",
+        "pairLabel": "",
+        "hasBaseline": false
+      }
+    ],
+    "evalRuns": [
+      {
+        "id": "run-3",
+        "startedAt": "2026-10-15 21:10",
+        "caseCount": 120,
+        "modelSnapshot": "deepseek-chat · bge-m3 · bge-reranker-v2-m3",
+        "metrics": {
+          "citationVerifiable": 0.94,
+          "underRefusal": 0.12,
+          "overRefusal": 0.06,
+          "keyPointHit": 0.81,
+          "batchConfusion": 0.05
+        },
+        "baseline": {
+          "note": "上线前人工实测：9 名工程师 · 120 例",
+          "citationVerifiable": 1,
+          "keyPointHit": 0.76,
+          "avgMinutes": 26
+        }
+      },
+      {
+        "id": "run-2",
+        "startedAt": "2026-10-08 20:40",
+        "caseCount": 120,
+        "modelSnapshot": "qwen-plus · bge-m3 · bge-reranker-v2-m3",
+        "metrics": {
+          "citationVerifiable": 0.91,
+          "underRefusal": 0.16,
+          "overRefusal": 0.09,
+          "keyPointHit": 0.77,
+          "batchConfusion": 0.08
+        },
+        "baseline": {
+          "note": "上线前人工实测：9 名工程师 · 120 例",
+          "citationVerifiable": 1,
+          "keyPointHit": 0.76,
+          "avgMinutes": 26
+        }
+      },
+      {
+        "id": "run-1",
+        "startedAt": "2026-09-25 19:05",
+        "caseCount": 60,
+        "modelSnapshot": "deepseek-chat · bge-m3（未接重排）",
+        "metrics": {
+          "citationVerifiable": 0.87,
+          "underRefusal": 0.22,
+          "overRefusal": 0.11,
+          "keyPointHit": 0.7,
+          "batchConfusion": 0.13
+        },
+        "baseline": null
+      }
+    ],
+    "dashboard": {
+      "week": "2026-W42",
+      "kpi": {
+        "questions": 1240,
+        "resolveRate": 0.78,
+        "refusalRate": 0.18,
+        "handoffRate": 0.09
+      },
+      "prevKpi": {
+        "questions": 1105,
+        "resolveRate": 0.74,
+        "refusalRate": 0.21,
+        "handoffRate": 0.12
+      },
+      "north": {
+        "asked": 50,
+        "resolved": 39
+      },
+      "prevNorth": {
+        "asked": 50,
+        "resolved": 37
+      },
+      "recognizableRate": 0.67,
+      "prevRecognizableRate": 0.74,
+      "sessionResolveRate": 0.71,
+      "badCases": 9,
+      "weekly": [
+        {
+          "week": "W37",
+          "questions": 168,
+          "resolveRate": 0.69
+        },
+        {
+          "week": "W38",
+          "questions": 182,
+          "resolveRate": 0.71
+        },
+        {
+          "week": "W39",
+          "questions": 205,
+          "resolveRate": 0.73
+        },
+        {
+          "week": "W40",
+          "questions": 224,
+          "resolveRate": 0.75
+        },
+        {
+          "week": "W41",
+          "questions": 231,
+          "resolveRate": 0.76
+        },
+        {
+          "week": "W42",
+          "questions": 240,
+          "resolveRate": 0.78
+        }
+      ],
+      "topQuestions": [
+        {
+          "q": "轿厢运行异响 / 咯噔声",
+          "count": 42,
+          "model": "ZX-300"
+        },
+        {
+          "q": "报警码 E07 含义与处置",
+          "count": 35,
+          "model": "ZX-300"
+        },
+        {
+          "q": "平层误差超差调整",
+          "count": 28,
+          "model": "ZX-300"
+        },
+        {
+          "q": "门机控制器 E30（无资料）",
+          "count": 24,
+          "model": "KL-900"
+        },
+        {
+          "q": "困人救援话术与规程",
+          "count": 19,
+          "model": "全型号"
+        }
+      ],
+      "engineers": [
+        {
+          "name": "李工",
+          "account": "E1024",
+          "questions": 320,
+          "resolveRate": 0.84,
+          "lastActive": "2026-10-16",
+          "state": "active"
+        },
+        {
+          "name": "张工",
+          "account": "E1031",
+          "questions": 246,
+          "resolveRate": 0.79,
+          "lastActive": "2026-10-16",
+          "state": "active"
+        },
+        {
+          "name": "赵工",
+          "account": "E1046",
+          "questions": 188,
+          "resolveRate": 0.62,
+          "lastActive": "2026-10-16",
+          "state": "active"
+        },
+        {
+          "name": "孙工",
+          "account": "E1072",
+          "questions": 154,
+          "resolveRate": 0.81,
+          "lastActive": "2026-10-14",
+          "state": "active"
+        },
+        {
+          "name": "周工",
+          "account": "E1088",
+          "questions": 96,
+          "resolveRate": 0.58,
+          "lastActive": "2026-10-02",
+          "state": "idle"
+        },
+        {
+          "name": "吴工",
+          "account": "E1093",
+          "questions": 12,
+          "resolveRate": 0.25,
+          "lastActive": "2026-09-12",
+          "state": "dead"
+        }
+      ],
+      "firstFixBuckets": [
+        {
+          "label": "＜10 分钟",
+          "count": 34
+        },
+        {
+          "label": "10–30 分钟",
+          "count": 61
+        },
+        {
+          "label": "30–60 分钟",
+          "count": 48
+        },
+        {
+          "label": "1–3 小时",
+          "count": 22
+        },
+        {
+          "label": "＞3 小时",
+          "count": 9
+        }
+      ],
+      "reports": [
+        {
+          "id": "rp-2",
+          "range": "2026-W37 ~ W41",
+          "exportedAt": "2026-10-09 08:00",
+          "exportedBy": "王主管",
+          "format": "Markdown（含上线前后对比 + 可识别率）"
+        }
+      ]
+    },
+    "users": [
+      {
+        "id": "u-1",
+        "name": "王主管",
+        "account": "E1001",
+        "role": "admin",
+        "status": "active",
+        "team": "售后管理",
+        "credential": "domain",
+        "lastActive": "2026-10-16 17:20"
+      },
+      {
+        "id": "u-2",
+        "name": "李工",
+        "account": "E1024",
+        "role": "user",
+        "status": "active",
+        "team": "华东一组",
+        "credential": "domain",
+        "lastActive": "2026-10-16 16:41"
+      },
+      {
+        "id": "u-3",
+        "name": "张工",
+        "account": "E1031",
+        "role": "user",
+        "status": "active",
+        "team": "华东一组",
+        "credential": "domain",
+        "lastActive": "2026-10-16 14:47"
+      },
+      {
+        "id": "u-4",
+        "name": "赵工",
+        "account": "E1046",
+        "role": "user",
+        "status": "active",
+        "team": "华东二组",
+        "credential": "local",
+        "lastActive": "2026-10-16 13:25"
+      },
+      {
+        "id": "u-5",
+        "name": "孙工",
+        "account": "E1072",
+        "role": "user",
+        "status": "active",
+        "team": "华南组",
+        "credential": "domain",
+        "lastActive": "2026-10-14 09:10"
+      },
+      {
+        "id": "u-6",
+        "name": "周工",
+        "account": "E1088",
+        "role": "user",
+        "status": "disabled",
+        "team": "华东二组",
+        "credential": "local",
+        "lastActive": "2026-10-02 11:30"
+      },
+      {
+        "id": "u-7",
+        "name": "陈工",
+        "account": "E2001",
+        "role": "admin",
+        "status": "active",
+        "team": "交付实施",
+        "credential": "domain",
+        "lastActive": "2026-10-15 18:02"
+      }
+    ],
+    "identity": {
+      "sentinel": "__unidentified__",
+      "sources": [
+        "gateway_sso",
+        "host_injected",
+        "password_login"
+      ],
+      "sourceLabel": {
+        "gateway_sso": "网关 SSO",
+        "host_injected": "宿主注入",
+        "password_login": "密码登录",
+        "anonymous": "未识别"
+      },
+      "threshold": 0.8,
+      "pendingClaimed": [
+        {
+          "account": "E2087",
+          "count": 5,
+          "lastAt": "2026-10-16 09:58"
+        },
+        {
+          "account": "E1102",
+          "count": 2,
+          "lastAt": "2026-10-15 09:31"
+        }
+      ]
+    }
+  }
+}

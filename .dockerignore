@@ -1,0 +1,8 @@
+# 构建上下文排除：原始资料、虚拟环境、本地验证产物都不进镜像
+data/
+.venv/
+.tmp-probe/
+.git/
+__pycache__/
+*.pyc
+.env

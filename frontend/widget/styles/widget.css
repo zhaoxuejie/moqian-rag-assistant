@@ -1,0 +1,348 @@
+/* ============================================================
+   设计契约（冻结）
+   风格：business-international + 工业务实
+   宿主：深蓝灰老式企业系统；Widget：白底 + 品牌绿 #0f7a52
+   字体：系统中文栈；圆角 8/12/16；阴影克制；图标全部内联 SVG
+   ------------------------------------------------------------
+   说明：本文件直接来自早期原型样式，
+   只删掉「演示控制台」相关样式（L3 演示机制不进入交付产物），
+   并在文件末尾补一段 iframe 嵌入适配（真实产物是 loader + iframe）。
+   ============================================================ */
+
+/* 共用令牌见 frontend/design/tokens.css（页面先加载本文件再加载它）；
+   这里只保留 Widget 特有令牌，数值与原型的 :root 完全一致。 */
+:root{
+  --bg:#eef1f4;
+  --radius:12px; --radius-sm:8px;
+  --shadow-w:0 12px 40px rgba(31,41,51,.18), 0 2px 8px rgba(31,41,51,.08);
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+/* 关键：作者样式 display:flex 会压过浏览器内置 [hidden]{display:none}，
+   必须显式声明，否则面板/弹层/弱网条/浮层按钮关不掉 */
+[hidden]{display:none !important}
+html,body{height:100%}
+body{font-family:var(--font);background:var(--bg);color:var(--ink);font-size:14px;line-height:1.6}
+button{font-family:inherit;cursor:pointer;border:none;background:none}
+svg{width:1em;height:1em;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+
+/* ---------------- 宿主：工单系统（仅宿主演示页 index.html 使用） ---------------- */
+.host-topbar{background:#234e70;color:#eaf1f8}
+.host-topbar__inner{max-width:980px;margin:0 auto;height:52px;display:flex;align-items:center;gap:28px;padding:0 20px}
+.host-brand{display:flex;align-items:center;gap:8px;font-weight:600;font-size:15px;white-space:nowrap}
+.host-brand__ic{width:18px;height:18px}
+.host-nav{display:flex;gap:22px;font-size:13.5px;color:#b9cde0;flex:1}
+.host-nav span{cursor:pointer;padding:4px 2px}
+.host-nav .is-on{color:#fff;border-bottom:2px solid #7fb2dd;padding-bottom:10px}
+.host-user{display:flex;align-items:center;gap:6px;font-size:13px;color:#cfe0ef;white-space:nowrap}
+.host-user svg{width:16px;height:16px}
+
+.host-main{max-width:980px;margin:0 auto;padding:18px 20px 120px}
+.host-crumbs{font-size:12.5px;color:var(--ink-3);margin-bottom:12px}
+.host-crumbs b{color:var(--ink-2)}
+.host-card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:22px 24px}
+.host-card + .host-card{margin-top:16px}
+.host-card__head{display:flex;align-items:center;gap:12px;margin-bottom:18px}
+.host-card__head h1{font-size:18px;font-weight:700}
+.host-tag{font-size:12px;padding:2px 10px;border-radius:20px;background:#eef1f4;color:var(--ink-2)}
+.host-tag--amber{background:var(--amber-soft);color:var(--amber);border:1px solid var(--amber-line)}
+.host-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px 28px;border-top:1px solid var(--line-2);padding-top:18px}
+.host-grid--wide{grid-column:1 / -1}
+.host-grid label{display:block;font-size:12px;color:var(--ink-3);margin-bottom:4px}
+.host-val{font-size:14px}
+.host-val--muted{color:var(--ink-2)}
+.host-actions{display:flex;gap:10px;margin-top:22px}
+.host-btn{border:1px solid #c9d3dc;border-radius:6px;padding:7px 16px;font-size:13.5px;color:var(--ink-2);background:#fff}
+.host-btn:hover{border-color:#9fb1bf;color:var(--ink)}
+.host-btn--primary{background:#2b5a88;border-color:#2b5a88;color:#fff}
+.host-btn--primary:hover{background:#244d74}
+.host-note{margin-top:20px;padding:10px 14px;background:var(--blue-soft);border-left:3px solid #8fb3d6;border-radius:4px;font-size:12.5px;color:#45607a}
+.host-demo{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+.host-demo .host-btn{font-size:13px}
+.host-demo__state{font-size:12.5px;color:var(--ink-3);margin-top:10px;width:100%}
+/* 免责声明：跟在「以上是客户已有的工单系统…」下方，随卡片走而不是压页脚。
+   低对比、小字，读完就过，不抢演示内容的注意力 */
+.host-disclaimer{margin-top:10px;padding-top:10px;border-top:1px dashed var(--line-2);
+  font-size:11.5px;line-height:1.8;color:var(--ink-3)}
+
+/* ---------------- Widget 浮层入口（原型同款；真实产物由 loader.js 注入宿主页） ---------------- */
+.w-launcher{position:fixed;right:24px;bottom:24px;width:56px;height:56px;border-radius:50%;
+  background:var(--green);color:#fff;box-shadow:0 8px 24px rgba(15,122,82,.38);z-index:900;
+  display:flex;align-items:center;justify-content:center;transition:transform .15s ease}
+.w-launcher:hover{background:var(--green-dark);transform:translateY(-2px)}
+.w-launcher__ic{width:26px;height:26px}
+.w-launcher__dot{position:absolute;top:10px;right:12px;width:9px;height:9px;border-radius:50%;background:#ffd166;border:2px solid var(--green)}
+
+/* ---------------- Widget 面板 ---------------- */
+.w-panel{position:fixed;right:24px;bottom:24px;width:400px;height:640px;max-height:calc(100vh - 48px);
+  background:var(--surface);border-radius:16px;box-shadow:var(--shadow-w);z-index:910;
+  display:flex;flex-direction:column;overflow:hidden;
+  animation:wPop .22s cubic-bezier(.2,.9,.3,1.2)}
+@keyframes wPop{from{opacity:0;transform:translateY(16px) scale(.97)}to{opacity:1;transform:none}}
+
+.w-head{padding:14px 14px 12px;border-bottom:1px solid var(--line-2);display:flex;align-items:center;justify-content:space-between}
+.w-head__id{display:flex;align-items:center;gap:10px}
+.w-head__logo{width:34px;height:34px;border-radius:9px;background:var(--green-soft);color:var(--green);
+  display:flex;align-items:center;justify-content:center;flex:none}
+.w-head__logo svg{width:19px;height:19px}
+.w-head__title{font-weight:700;font-size:15px;line-height:1.3}
+.w-head__sub{font-size:11.5px;color:var(--ink-3);display:flex;align-items:center;gap:4px}
+.w-head__ops{display:flex;gap:4px}
+.w-iconbtn{width:30px;height:30px;border-radius:8px;color:var(--ink-2);display:flex;align-items:center;justify-content:center}
+.w-iconbtn:hover{background:var(--surface-2);color:var(--ink)}
+.w-iconbtn svg{width:17px;height:17px}
+
+.w-netbar{display:flex;align-items:center;gap:8px;background:#374151;color:#f3f4f6;font-size:12px;
+  padding:8px 14px;animation:wSlide .2s ease}
+.w-netbar svg{width:15px;height:15px;color:#fca5a5;flex:none}
+@keyframes wSlide{from{transform:translateY(-100%)}to{transform:none}}
+
+/* ---- 身份标签与未识别提示条（v0.2，PRD §2.3） ----
+   只表达"系统认不认得你"，不阻塞任何操作 */
+.w-idtag{font-size:10.5px;font-weight:600;color:var(--green-dark);background:var(--green-soft);
+  border:1px solid var(--green-line);border-radius:20px;padding:2px 8px;white-space:nowrap;flex:none;
+  align-self:flex-start;margin-left:auto;margin-right:6px}
+.w-idtag.is-anon{color:#8a5a06;background:#fdf6e9;border-color:#ecd9a8}
+.w-head__id{flex-wrap:nowrap;min-width:0}
+.w-head__id > div{min-width:0}
+.w-head__sub{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.w-idnote{display:flex;align-items:flex-start;gap:7px;background:#fdf6e9;color:#8a5a06;
+  border-bottom:1px solid #ecd9a8;font-size:11.5px;line-height:1.65;padding:8px 14px}
+.w-idnote svg{width:14px;height:14px;flex:none;margin-top:2px}
+
+.w-body{flex:1;overflow-y:auto;padding:16px 14px;background:var(--surface);display:flex;flex-direction:column;gap:14px;scroll-behavior:smooth}
+.w-body::-webkit-scrollbar{width:6px}
+.w-body::-webkit-scrollbar-thumb{background:#d5dde4;border-radius:3px}
+
+/* 欢迎屏 */
+.w-welcome .w-welcome__hi{font-weight:700;font-size:15px;margin-bottom:4px}
+.w-welcome p{font-size:12.5px;color:var(--ink-2);margin-bottom:12px}
+.w-chips{display:flex;flex-direction:column;gap:8px}
+.w-chip{text-align:left;border:1px solid var(--line);border-radius:10px;padding:9px 12px;font-size:13px;
+  color:var(--ink);background:#fff;display:flex;gap:8px;align-items:flex-start;transition:all .12s}
+.w-chip:hover{border-color:var(--green-line);background:var(--green-soft)}
+.w-chip svg{width:15px;height:15px;color:var(--green);margin-top:2px;flex:none}
+.w-chip small{display:block;color:var(--ink-3);font-size:11.5px;margin-top:2px}
+/* 示例之外的人工出口：安静一点，不与示例问题抢注意力 */
+.w-welcome__handoff{margin-top:12px;padding-top:10px;border-top:1px dashed var(--line)}
+.w-handoff-link{display:inline-flex;align-items:center;gap:6px;color:var(--green);font-size:12.5px}
+.w-handoff-link:hover{text-decoration:underline}
+.w-handoff-link svg{width:14px;height:14px;color:currentColor;margin:0}
+
+/* 消息 */
+.w-msg{display:flex;gap:8px;animation:wFade .25s ease}
+@keyframes wFade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.w-msg--user{justify-content:flex-end}
+.w-bubble{max-width:86%;padding:9px 12px;border-radius:12px;font-size:13.5px;white-space:pre-wrap;word-break:break-word}
+.w-msg--user .w-bubble{background:var(--green);color:#fff;border-bottom-right-radius:4px}
+.w-msg--ai{flex-direction:column;gap:8px;width:100%}
+.w-avatar{width:26px;height:26px;border-radius:8px;background:var(--green-soft);color:var(--green);
+  display:flex;align-items:center;justify-content:center;flex:none}
+.w-avatar svg{width:15px;height:15px}
+.w-ai-head{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--ink-3)}
+.w-ai-card{border:1px solid var(--line);border-radius:12px;padding:12px 13px;background:#fff;width:100%}
+
+/* 结构化理解卡 */
+.w-struct{background:var(--blue-soft);border:1px solid #d3e2f0;border-radius:10px;padding:9px 11px;margin-bottom:8px}
+.w-struct__title{font-size:11px;color:#45607a;font-weight:600;display:flex;align-items:center;gap:5px;margin-bottom:6px}
+.w-struct__title svg{width:13px;height:13px}
+.w-struct__fields{display:flex;flex-wrap:wrap;gap:6px}
+.w-kv{font-size:11.5px;background:#fff;border:1px solid #d3e2f0;border-radius:6px;padding:2px 8px;color:#345470}
+.w-kv b{color:var(--ink)}
+.w-kv--empty{color:var(--ink-3);border-style:dashed}
+.w-struct__filter{font-size:11px;color:#5b7388;margin-top:7px;display:flex;align-items:center;gap:5px}
+.w-struct__filter svg{width:12px;height:12px}
+
+/* 流式光标 */
+.w-cursor{display:inline-block;width:7px;height:14px;background:var(--green);margin-left:2px;vertical-align:-2px;animation:wBlink 1s steps(1) infinite}
+@keyframes wBlink{50%{opacity:0}}
+
+/* 步骤清单 */
+.w-steps{list-style:none;display:flex;flex-direction:column;gap:10px;margin:4px 0 2px}
+.w-steps li{display:flex;gap:10px;font-size:13px;line-height:1.65}
+.w-steps__no{flex:none;width:20px;height:20px;border-radius:50%;background:var(--green-soft);color:var(--green);
+  font-size:11.5px;font-weight:700;display:flex;align-items:center;justify-content:center;margin-top:2px}
+.w-steps li b{font-weight:600}
+.w-steps__txt{min-width:0;word-break:break-word}
+/* 步骤引用角标：编号与下方引用卡一一对应，点击定位并展开（PRD FR-Q3.4） */
+.w-cite-ref{display:inline-block;margin-left:2px;font-size:10px;font-weight:600;line-height:1.5;
+  color:var(--blue);background:var(--blue-soft);border:1px solid #cfe0ef;border-radius:4px;
+  padding:0 3px;vertical-align:1px;cursor:pointer;user-select:none}
+.w-cite-ref:hover{background:#e2eefa;border-color:var(--blue)}
+
+/* 多版本冲突提示 */
+.w-conflict{display:flex;gap:8px;background:var(--amber-soft);border:1px solid var(--amber-line);
+  border-radius:10px;padding:9px 11px;font-size:12px;color:var(--amber);margin:4px 0 2px}
+.w-conflict svg{width:15px;height:15px;flex:none;margin-top:1px}
+.w-conflict__opts{margin-top:4px;font-size:11px;color:#8a6a1f}
+
+/* 单轮追问卡（条件不足时先问一句，选定即答） */
+.w-ask{background:var(--blue-soft);border:1px solid #d3e2f0;border-radius:12px;padding:13px 14px}
+.w-ask__title{display:flex;align-items:center;gap:7px;font-weight:700;font-size:13.5px;color:#24486b;margin-bottom:6px}
+.w-ask__title svg{width:15px;height:15px;flex:none}
+.w-ask__body{font-size:12.5px;line-height:1.65;color:#3d5a75}
+.w-ask__opts{display:flex;flex-direction:column;gap:7px;margin-top:10px}
+.w-ask__opt{display:flex;align-items:baseline;gap:8px;text-align:left;background:#fff;
+  border:1px solid #cfe0ef;border-radius:9px;padding:8px 11px;font-size:12.5px;color:var(--ink);
+  transition:border-color .12s,background .12s}
+.w-ask__opt b{font-weight:600;flex:none}
+.w-ask__opt small{font-size:11px;color:var(--ink-3);margin-left:auto;text-align:right;padding-left:8px}
+.w-ask__opt:hover{border-color:var(--blue)}
+.w-ask__opt:disabled{cursor:default;opacity:.55}
+.w-ask__opt.is-picked{border-color:var(--blue);background:#e8f1f9;opacity:1}
+.w-ask__hint{margin-top:9px;font-size:11px;color:var(--ink-3)}
+
+/* 引用卡 */
+.w-cites{margin-top:10px;border-top:1px dashed var(--line);padding-top:9px;display:flex;flex-direction:column;gap:7px}
+.w-cites__label{font-size:11px;color:var(--ink-3);display:flex;align-items:center;gap:5px}
+.w-cites__label svg{width:13px;height:13px}
+.w-cite{border:1px solid var(--line);border-left:3px solid var(--green);border-radius:8px;
+  padding:8px 10px;font-size:12px;background:var(--surface-2);cursor:pointer;transition:border-color .12s}
+.w-cite:hover{border-color:var(--green-line)}
+.w-cite__head{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;
+  column-gap:7px;row-gap:5px;font-weight:600;color:var(--green-dark)}
+.w-cite__lead{display:flex;align-items:center;gap:5px}
+.w-cite__lead svg{width:14px;height:14px}
+.w-cite__title{min-width:0}
+.w-cite__head .w-cite__chev{color:var(--ink-3);transition:transform .15s}
+.w-cite.is-open .w-cite__chev{transform:rotate(180deg)}
+.w-cite__meta{font-weight:400;color:var(--ink-3);font-size:11px;margin-left:2px}
+.w-cite__batch{font-size:10.5px;background:var(--green-soft);color:var(--green-dark);border-radius:4px;
+  padding:1px 6px;grid-column:1 / -1;justify-self:start}
+/* 引用卡序号：与步骤角标同一套编号 */
+.w-cite__no{flex:none;min-width:16px;height:16px;border-radius:50%;background:#fff;border:1px solid var(--line);
+  color:var(--ink-2);font-size:10px;font-weight:600;display:inline-flex;align-items:center;justify-content:center}
+/* 从角标跳转过来时的短暂高亮 */
+@keyframes citeFlash{0%{box-shadow:0 0 0 0 rgba(15,122,82,.5)}30%{box-shadow:0 0 0 3px rgba(15,122,82,.3)}100%{box-shadow:0 0 0 0 rgba(15,122,82,0)}}
+.w-cite.is-flash{animation:citeFlash 1.7s ease}
+.w-cite__orig{display:none;margin-top:8px;padding:8px 10px;background:#fff;border:1px solid var(--line-2);
+  border-radius:7px;font-size:12px;color:var(--ink-2);line-height:1.7;white-space:pre-wrap}
+.w-cite.is-open .w-cite__orig{display:block}
+.w-cite--ticket{border-left-color:#2b5a88}
+.w-cite--ticket .w-cite__head{color:#2b5a88}
+
+/* 操作条：已解决 / 没解决 / 收藏 */
+.w-actions{display:flex;align-items:center;gap:8px;margin-top:10px;flex-wrap:wrap}
+.w-act{display:inline-flex;align-items:center;gap:5px;font-size:12px;border:1px solid var(--line);
+  border-radius:20px;padding:5px 12px;color:var(--ink-2);background:#fff;transition:all .12s}
+.w-act svg{width:14px;height:14px}
+.w-act:hover{border-color:#c9d3dc}
+.w-act--ok.is-active{background:var(--green-soft);border-color:var(--green-line);color:var(--green-dark);font-weight:600}
+.w-act--no.is-active{background:var(--red-soft);border-color:var(--red-line);color:var(--red);font-weight:600}
+.w-act--save.is-active{background:#fff8e8;border-color:#e8d49a;color:#9a6a08}
+.w-act-note{font-size:11px;color:var(--ink-3)}
+
+/* 拒答 / 安全卡 */
+.w-refuse{border-radius:12px;padding:13px 14px;display:flex;gap:10px;width:100%}
+.w-refuse svg{width:19px;height:19px;flex:none;margin-top:1px}
+.w-refuse__title{font-weight:700;font-size:13.5px;margin-bottom:4px}
+.w-refuse p{font-size:12.5px;line-height:1.65}
+.w-refuse--gap{background:var(--red-soft);border:1px solid var(--red-line);color:#8f3026}
+.w-refuse--gap svg{color:var(--red)}
+.w-refuse--safe{background:var(--amber-soft);border:1px solid var(--amber-line);color:#7c5708}
+.w-refuse--safe svg{color:var(--amber)}
+.w-refuse .w-cite{margin-top:9px;background:#fff}
+.w-refuse__btn{margin-top:10px;display:inline-flex;align-items:center;gap:6px;background:var(--ink);
+  color:#fff;font-size:12.5px;border-radius:8px;padding:7px 14px}
+.w-refuse__btn:hover{background:#000}
+/* 预约入口是 <a>（新标签打开），视觉与按钮一致 */
+a.w-refuse__btn{text-decoration:none;cursor:pointer}
+.w-refuse__btn svg{width:14px;height:14px;color:#fff;margin:0}
+/* 失败卡的次按钮（重试为主、转人工为辅），兜底态两条出路都要能点 */
+.w-refuse__ops{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.w-refuse__btn--ghost{background:#fff;color:var(--ink-2);border:1px solid var(--line)}
+.w-refuse__btn--ghost:hover{background:var(--surface-2);color:var(--ink)}
+.w-refuse__btn--ghost svg{color:currentColor}
+/* 服务不可达（加载失败）整屏兜底 */
+.w-bootfail{padding:16px}
+
+/* 暂存消息（D-004 未实现断网重发，样式先保留，见 app.js 注释） */
+.w-pending{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--ink-3);
+  border:1px dashed #c9d3dc;border-radius:10px;padding:8px 11px;justify-content:space-between;width:fit-content;max-width:86%}
+.w-pending button{display:inline-flex;align-items:center;gap:4px;color:var(--blue);font-size:12px}
+.w-pending svg{width:14px;height:14px}
+
+/* 输入区 */
+.w-foot{border-top:1px solid var(--line-2);padding:10px 12px 8px;background:#fff}
+.w-input{display:flex;align-items:flex-end;gap:8px;border:1px solid var(--line);border-radius:12px;padding:7px 8px 7px 12px;background:#fff;transition:border-color .12s}
+.w-input:focus-within{border-color:var(--green-line);box-shadow:0 0 0 3px rgba(15,122,82,.08)}
+.w-input textarea:disabled{color:var(--ink-3);cursor:not-allowed}
+.w-input textarea{flex:1;border:none;outline:none;resize:none;font-family:inherit;font-size:13.5px;
+  line-height:1.5;max-height:88px;background:transparent;color:var(--ink)}
+.w-send{width:32px;height:32px;border-radius:9px;background:var(--green);color:#fff;flex:none;
+  display:flex;align-items:center;justify-content:center;transition:background .12s}
+.w-send:hover{background:var(--green-dark)}
+.w-send:disabled{background:#c3cfc9;cursor:not-allowed}
+.w-send svg{width:16px;height:16px}
+.w-foot__hint{text-align:center;font-size:10.5px;color:var(--ink-3);margin-top:6px}
+/* 演示剩余轮次：一行小字，不抢输入框注意力；用完时转琥珀提醒 */
+.w-quota{text-align:center;font-size:10.5px;color:var(--ink-3);margin-top:6px}
+.w-quota:not([hidden])+ .w-foot__hint{margin-top:2px}
+
+/* 转人工弹层 */
+.w-modal{position:fixed;inset:0;background:rgba(31,41,51,.42);z-index:950;display:flex;
+  align-items:center;justify-content:center;padding:20px;animation:wFade .15s ease}
+.w-modal__box{background:#fff;border-radius:14px;width:380px;max-width:100%;padding:20px;box-shadow:var(--shadow-w)}
+.w-modal__head{display:flex;align-items:center;gap:9px;margin-bottom:10px}
+.w-modal__head svg{width:19px;height:19px;color:var(--blue)}
+.w-modal__head h3{font-size:15.5px}
+.w-modal__lead{font-size:12.5px;color:var(--ink-2);margin-bottom:10px}
+.w-carry{list-style:none;border:1px solid var(--line);border-radius:10px;overflow:hidden;font-size:12.5px}
+.w-carry li{padding:8px 12px;display:flex;justify-content:space-between;gap:10px;border-bottom:1px solid var(--line-2)}
+.w-carry li:last-child{border-bottom:none}
+.w-carry li span:first-child{color:var(--ink-3);flex:none}
+.w-carry li b{text-align:right}
+.w-hotline{display:flex;gap:10px;background:var(--blue-soft);border-radius:10px;padding:11px 12px;margin-top:12px;font-size:12.5px;color:#345470}
+.w-hotline svg{width:17px;height:17px;flex:none;margin-top:1px;color:var(--blue)}
+.w-hotline span{display:block;font-size:11px;color:#6b8299;margin-top:2px}
+.w-modal__ops{display:flex;justify-content:flex-end;gap:9px;margin-top:16px}
+.w-btn{border-radius:9px;padding:8px 16px;font-size:13px}
+.w-btn--ghost{border:1px solid var(--line);color:var(--ink-2)}
+.w-btn--primary{background:var(--green);color:#fff}
+.w-btn--primary:hover{background:var(--green-dark)}
+
+/* toast */
+.w-toasts{position:fixed;left:50%;bottom:32px;transform:translateX(-50%);z-index:990;
+  display:flex;flex-direction:column;gap:8px;align-items:center}
+.w-toast{background:#26313c;color:#fff;font-size:12.5px;padding:9px 16px;border-radius:24px;
+  box-shadow:0 6px 20px rgba(0,0,0,.25);display:flex;align-items:center;gap:7px;animation:wFade .2s ease}
+.w-toast svg{width:14px;height:14px;color:#7fd6ac}
+
+/* ---------------- 移动端（井道现场） ---------------- */
+@media (max-width:560px){
+  .host-topbar__inner{gap:12px;padding:0 14px}
+  .host-brand{font-size:13px;min-width:0;overflow:hidden;text-overflow:ellipsis}
+  .host-nav{display:none}
+  .host-user{display:none}          /* 窄屏宿主顶栏只留品牌，避免把布局视口撑宽 */
+  .host-main{padding:14px 14px 110px}
+  .host-card{padding:16px}
+  .host-grid{grid-template-columns:1fr}
+  .w-launcher{right:16px;bottom:16px;width:52px;height:52px}
+  .w-panel{right:0;bottom:0;width:100%;height:100%;max-height:none;border-radius:0}
+}
+
+/* ---------------- 尊重系统「减少动态效果」（spec §9） ---------------- */
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{
+    animation-duration:1ms !important;animation-iteration-count:1 !important;
+    transition-duration:1ms !important;scroll-behavior:auto !important}
+}
+
+/* ============================================================
+   iframe 嵌入适配（真实 chat_widget 形态，原型里没有这一段）
+   loader.js 在宿主页创建 400×640、圆角 16、同款阴影的浮层外壳，
+   iframe 内容页铺满外壳；圆角/阴影由外壳负责，避免被 iframe 边界裁掉。
+   ============================================================ */
+body.w-embed{background:transparent}
+body.w-embed .w-panel{position:absolute;inset:0;width:100%;height:100%;max-height:none;
+  border-radius:inherit;box-shadow:none;animation:none}
+/* 直接打开 widget.html（无宿主，联调用）：页内自己画原型同款 400×640 浮层 */
+html.w-standalone body.w-embed{background:var(--bg)}
+html.w-standalone body.w-embed .w-panel{position:fixed;inset:auto;right:24px;bottom:24px;
+  width:400px;height:640px;max-height:calc(100vh - 48px);border-radius:16px;
+  box-shadow:var(--shadow-w);animation:wPop .22s cubic-bezier(.2,.9,.3,1.2)}
+@media (max-width:560px){
+  html.w-standalone body.w-embed .w-panel{inset:0;width:100%;height:100%;max-height:none;border-radius:0}
+}
+/* 引用原文按需加载：展开后先显示占位，拿到 /widget/evidence/{id} 再填 */
+.w-cite__orig.is-loading{color:var(--ink-3);font-style:italic}

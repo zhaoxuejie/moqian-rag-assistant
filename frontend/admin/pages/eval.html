@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>评测面板 · 售后知识助手管理台</title>
+<link rel="icon" type="image/svg+xml" href="../favicon.svg" />
+<script src="../controllers/theme-boot.js?v=20261081"></script>
+<link rel="stylesheet" href="/ui-design/tokens.css" />
+    <link rel="stylesheet" href="../styles/admin.css?v=20261081" />
+</head>
+<body data-page="eval">
+<div class="layout">
+
+  <!-- 侧边栏由 layout.js 注入（单点维护），页面只留挂载点 -->
+  <aside class="side" id="appSide"></aside>
+
+  <div class="main">
+    <header class="topbar">
+      <h1>评测面板</h1>
+      <span class="topbar__sub">测的就是线上跑的那套管线：换模型必须重跑同一用例集做回归</span>
+      <div class="topbar__right">
+        <span class="topbar__pill">
+          <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          本机环境 · 真实数据
+        </span>
+        <button class="btn btn--ghost btn--sm" id="btnUploadCases" title="上传 CSV / Excel 评测用例（可先下载模板）">
+          <svg viewBox="0 0 24 24"><path d="M12 21V9"/><path d="m7 14 5-5 5 5"/><path d="M5 3h14"/></svg>
+          用例导入
+        </button>
+        <button class="btn btn--ghost btn--sm" id="btnImportCases" title="清空当前用例表，恢复仓库默认评测用例集（evals/cases.yaml）">
+          <svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>
+          用例重置
+        </button>
+        <button class="btn btn--ghost btn--sm" id="btnRefreshEval">
+          <svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+          刷新
+        </button>
+      </div>
+    </header>
+
+    <main class="content">
+      <!-- 顶部四个指标：取最近一次已完成/失败的评测批次；无批次一律显示「—」 -->
+      <div class="stats">
+        <div class="stat">
+          <div class="stat__label"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>引用来源可核验率</div>
+          <div class="stat__num" data-stat="citation">—</div>
+          <div class="stat__delta" data-stat="citationNote">—</div>
+        </div>
+        <div class="stat">
+          <div class="stat__label"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>拒答：漏拒 / 误拒</div>
+          <div class="stat__num" data-stat="refusal">—</div>
+          <div class="stat__delta warn" data-stat="refusalNote">—</div>
+        </div>
+        <div class="stat">
+          <div class="stat__label"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>要点命中率</div>
+          <div class="stat__num" data-stat="hit">—</div>
+          <div class="stat__delta" data-stat="hitNote">—</div>
+        </div>
+        <div class="stat">
+          <div class="stat__label"><svg viewBox="0 0 24 24"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg>批次混淆率</div>
+          <div class="stat__num" data-stat="confusion">—</div>
+          <div class="stat__delta down" data-stat="confusionNote">—</div>
+        </div>
+      </div>
+
+      <!-- 指标口径 + 人工基线双列 -->
+      <div class="card" style="margin-bottom:16px">
+        <div class="card__head">
+          <h2>指标口径与人工基线对比</h2>
+          <span class="card__head spacer"></span>
+          <span id="runNote" style="font-size:11.5px;color:#8a97a3">—</span>
+        </div>
+        <div class="tbl-wrap">
+          <table class="tbl">
+            <thead>
+              <tr>
+                <th style="width:150px">指标</th>
+                <th>口径（唯一定义）</th>
+                <th style="width:96px" class="num">助手</th>
+                <th style="width:110px" class="num">人工基线</th>
+                <th style="width:96px" class="num">差值</th>
+              </tr>
+            </thead>
+            <tbody id="metricRows"></tbody>
+          </table>
+        </div>
+        <div class="metric-legend" style="padding:12px 18px 16px">
+          <span><b>该有的数据才填：</b>尚未做人工基线的时期留空，不填估算值</span>
+          <span><b>批次混淆率</b>单项报告：把 A 批次方案给了 B 批次设备，工业场景的严重错误</span>
+        </div>
+      </div>
+
+      <!-- 评测集 -->
+      <div class="card" style="margin-bottom:16px">
+        <div class="card__head">
+          <h2>评测用例集</h2>
+          <span class="card__head spacer"></span>
+          <span id="caseNote" style="font-size:11.5px;color:#8a97a3">—</span>
+        </div>
+        <div class="tbl-wrap">
+          <table class="tbl">
+            <thead>
+              <tr>
+                <th>问题</th>
+                <th style="width:110px">故障类型</th>
+                <th style="width:96px">设备型号</th>
+                <th style="width:150px">跨批次用例对</th>
+                <th style="width:100px">人工基线</th>
+              </tr>
+            </thead>
+            <tbody id="caseRows"></tbody>
+          </table>
+        </div>
+        <div class="metric-legend" style="padding:12px 18px 16px">
+          <span><b>跨批次用例对：</b>同一现象、不同批次的两条用例成对出现，专门用来测「不把 A 批次的修法给 B 批次」</span>
+        </div>
+      </div>
+
+      <!-- 执行与快照 -->
+      <div class="card">
+        <div class="card__head">
+          <h2>评测执行与快照</h2>
+          <span class="card__head spacer"></span>
+          <button class="btn btn--primary btn--sm" id="btnRunEval">
+            <svg viewBox="0 0 24 24"><path d="M5 3l14 9-14 9z"/></svg>
+            一键跑评测
+          </button>
+        </div>
+        <div class="card__body" style="padding-top:14px">
+          <div id="runProgress"></div>
+        </div>
+        <div class="tbl-wrap">
+          <table class="tbl">
+            <thead>
+              <tr>
+                <th style="width:130px">时间</th>
+                <th>模型快照</th>
+                <th style="width:80px" class="num">用例</th>
+                <th style="width:88px" class="num">可核验率</th>
+                <th style="width:88px" class="num">要点命中</th>
+                <th style="width:88px" class="num">混淆率</th>
+                <th style="width:120px">对比上次</th>
+              </tr>
+            </thead>
+            <tbody id="runRows"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="hint" style="margin-top:14px">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+        <span>评测 runner 复用线上 ①~⑦ 全部管线代码（结构化改写 → 多路召回 → 融合重排 → Evidence Gate → 生成 → 引用校验），
+        不是另写一套实现；每次评测留存模型快照，便于换模型前后对比。评测依赖真实 LLM，同一时刻只允许一个批次在跑。</span>
+      </div>
+    </main>
+  </div>
+</div>
+
+<div class="modal-mask" id="caseImportModal" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="caseImportTitle" style="width:560px">
+    <div class="modal__head">
+      <svg viewBox="0 0 24 24"><path d="M12 21V9"/><path d="m7 14 5-5 5 5"/><path d="M5 3h14"/></svg>
+      <span id="caseImportTitle">用例导入</span>
+    </div>
+    <div class="modal__body">
+      <div class="modal__text">
+        支持 CSV / Excel（.xlsx），单文件 ≤2MB、≤2000 行；每条用例一行，「问题」必填。
+        期望要点用「｜」分隔，导入后用于判断检索是否命中，不要求回答逐字包含。
+      </div>
+      <input type="file" id="caseFileInput" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden />
+      <label class="file-drop" for="caseFileInput" id="caseFileDrop" style="margin-top:12px">
+        <span id="caseFileText">点击选择用例文件（CSV / Excel，≤2MB）</span>
+      </label>
+      <div class="hint" style="margin-top:12px;display:flex;gap:14px;flex-wrap:wrap;align-items:center">
+        <span>模板：</span>
+        <a href="#" id="tplCsv" style="color:var(--green);font-weight:600">下载 CSV 模板</a>
+        <a href="#" id="tplXlsx" style="color:var(--green);font-weight:600">下载 Excel 模板</a>
+      </div>
+      <div class="hint" id="caseImportError" style="color:var(--red);margin-top:8px" hidden></div>
+    </div>
+    <div class="modal__foot">
+      <button class="btn btn--ghost" id="caseImportCancel" type="button">取消</button>
+      <button class="btn btn--primary" id="caseImportConfirm" type="button" disabled>开始导入</button>
+    </div>
+  </div>
+</div>
+
+<div class="toasts" id="toasts"></div>
+<script src="../adapters/real-api.js?v=20261081"></script>
+<script src="../adapters/evals-api.js?v=20261081"></script>
+<script src="../controllers/layout.js?v=20261081"></script>
+<script src="../controllers/app.js?v=20261081"></script>
+<script src="../controllers/preview.js?v=20261082"></script>
+<script src="../controllers/eval.js?v=20261081"></script>
+</body>
+</html>

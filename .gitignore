@@ -1,0 +1,79 @@
+# ============================================================
+# moqian-service-assistant · 忽略规则
+# 技术栈：Python/FastAPI + PostgreSQL(pgvector) + worker；
+# frontend/ 为静态产物，零构建。
+# ============================================================
+
+# ---- 操作系统 / 编辑器垃圾 ----
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp
+*.swo
+*~
+*.bak
+*.orig
+*.rej
+
+# ---- IDE 生成的分享包 ----
+.trae-html-share-packages/
+
+# ---- Python（后端 app/ modules/ 与 worker）----
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+build/
+.venv/
+venv/
+env/
+.python-version
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+
+# ---- Node（仅在将来引入前端构建时使用；M0 的 frontend/ 不构建）----
+node_modules/
+dist/
+.vite/
+.eslintcache
+npm-debug.log*
+pnpm-debug.log*
+yarn-error.log*
+
+# ---- 密钥与环境配置（LLM_BASE_URL / LLM_MODEL / LLM_API_KEY 等，架构文档 §3）----
+.env
+.env.*
+!.env.example
+
+# ---- 运行期数据：上传的知识源原件、解析中间产物、日志、备份 ----
+*.log
+logs/
+# data/ 有意不入库：手册是厂商版权文档，二进制进 git 只增不减。
+# 备份与校验自行处理，不要把原件或备份提交进仓库
+data/
+uploads/
+tmp/
+*.dump
+
+# ---- 本地验证产物（headless Chrome 探针脚本、截图、临时 profile）----
+.tmp-probe/
+
+# ---- pip 在仓库根运行时可能留下的中间目录（TEMP 不可用时会落到当前目录）----
+pip-build-env-*/
+pip-build-tracker-*/
+pip-ephem-wheel-cache-*/
+pip-install-*/
+pip-*.whl
+jieba.cache
+pytest-of-*/

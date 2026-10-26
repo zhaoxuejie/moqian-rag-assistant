@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>我的问答 · 售后知识助手管理台</title>
+<link rel="icon" type="image/svg+xml" href="../favicon.svg" />
+<script src="../controllers/theme-boot.js?v=20261081"></script>
+<link rel="stylesheet" href="/ui-design/tokens.css" />
+<link rel="stylesheet" href="../styles/admin.css?v=20261081" />
+</head>
+<body data-page="my-qa">
+<div class="layout">
+
+  <!-- 侧边栏由 layout.js 注入（单点维护），页面只留挂载点 -->
+  <aside class="side" id="appSide"></aside>
+
+  <div class="main">
+    <header class="topbar">
+      <h1>我的问答</h1>
+      <span class="topbar__sub">个人域：只查看自己的问答记录；点击任意一行展开该轮只读流程</span>
+      <div class="topbar__right">
+        <span class="topbar__pill">
+          <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          本机环境 · 真实数据
+        </span>
+      </div>
+    </header>
+
+    <main class="content">
+      <div class="card" style="margin-bottom:16px">
+        <div class="card__head">
+          <h2>我的问答</h2>
+          <span class="card__head spacer"></span>
+          <span style="font-size:11.5px;color:#8a97a3">只读 · 点击任意一行查看该轮流程</span>
+        </div>
+        <div class="tbl-wrap">
+          <table class="tbl">
+            <thead>
+              <tr>
+                <th style="width:130px">时间</th>
+                <th>原始问题</th>
+                <th style="width:120px">结果</th>
+                <th style="width:70px" class="num">引用</th>
+                <th style="width:96px">解决标记</th>
+              </tr>
+            </thead>
+            <tbody id="qaRows"></tbody>
+          </table>
+        </div>
+        <div class="empty" id="qaEmpty" hidden>
+          <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          还没有属于你的问答记录。完整问答请在业务系统里的助手面板查看——这里刻意不做第二个提问入口
+        </div>
+      </div>
+      <div class="pager" id="qaPager" hidden></div>
+
+      <!-- 点某一行展开该轮的只读流程 -->
+      <div class="card" id="qaDetail" hidden style="margin-bottom:16px">
+        <div class="card__head">
+          <h2>本轮流程</h2>
+          <span class="card__head spacer"></span>
+          <span style="font-size:11.5px;color:#8a97a3">只读 · 完整复盘（含引用剥离与证据相关度）在管理员的「问答日志」</span>
+        </div>
+        <div class="detail__section" id="qaDetailBody"></div>
+      </div>
+
+      <div class="hint" style="margin-top:14px">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+        身份是「声明 + 在册校验」，不是身份认证：系统确认工号在册，但不验证操作者是否本人。
+        因此未识别会话不会出现在本页，也不计入按人指标。
+      </div>
+    </main>
+  </div>
+</div>
+
+<div class="toasts" id="toasts"></div>
+<script src="../adapters/real-api.js?v=20261081"></script>
+<script src="../adapters/users-api.js?v=20261081"></script>
+<script src="../controllers/layout.js?v=20261081"></script>
+<script src="../controllers/app.js?v=20261081"></script>
+<script src="../controllers/preview.js?v=20261082"></script>
+<script src="../controllers/my-qa.js?v=20261081"></script>
+</body>
+</html>

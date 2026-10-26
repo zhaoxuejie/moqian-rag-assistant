@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>售后知识助手 · 嵌入工单系统演示</title>
+<link rel="stylesheet" href="/ui-design/tokens.css">
+  <link rel="stylesheet" href="styles/widget.css">
+  <link rel="stylesheet" href="styles/demo-console.css">
+</head>
+<body>
+
+<!-- ============================================================
+     宿主页面：模拟客户已有的「电梯售后工单系统」工单详情页。
+     真实交付时客户页面一行不改，只在模板末尾注入 loader.js 两行 script。
+     ============================================================ -->
+<header class="host-topbar">
+  <div class="host-topbar__inner">
+    <div class="host-brand">
+      <svg viewBox="0 0 24 24" class="host-brand__ic"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M2 22h20M9 6h1m4 0h1M9 10h1m4 0h1M9 14h1m4 0h1M9 18h1m4 0h1"/></svg>
+      <span>宏远电梯 · 售后服务工单系统</span>
+    </div>
+    <nav class="host-nav"><span>工单台</span><span class="is-on">工单详情</span><span>客户档案</span><span>报表</span></nav>
+    <div class="host-user">
+      <svg viewBox="0 0 24 24"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      李伟（维保工程师 · HY-ENG-006）
+    </div>
+  </div>
+</header>
+
+<main class="host-main">
+  <div class="host-crumbs">工单台 / 待处理 / <b>HY-WO-2026-0107</b></div>
+
+  <section class="host-card">
+    <div class="host-card__head">
+      <h1>工单 HY-WO-2026-0107</h1>
+      <span class="host-tag host-tag--amber">待排查</span>
+    </div>
+    <div class="host-grid">
+      <div><label>客户 / 项目</label><div class="host-val">示例大厦 · 1 号梯</div></div>
+      <div><label>设备型号</label><div class="host-val" id="hostModel">HY-G1000/1.6-JXW</div></div>
+      <div><label>使用登记证号</label><div class="host-val">TS-440300（2026）XXXX</div></div>
+      <div><label>报修时间</label><div class="host-val">2026-10-22 09:42</div></div>
+      <div class="host-grid--wide"><label>客户描述</label>
+        <div class="host-val">“电梯运行到 6 层附近时，轿厢里能听到周期性‘咯噔’声，控制柜闪过几次 HY-E006，今天早上声音变大，已停梯。”</div>
+      </div>
+      <div class="host-grid--wide"><label>现场备注</label>
+        <div class="host-val host-val--muted">维保工程师李伟 09:55 到达，已在首层放置围挡。</div>
+      </div>
+    </div>
+    <div class="host-actions">
+      <button class="host-btn">出发签到</button>
+      <button class="host-btn">填写处理记录</button>
+      <button class="host-btn host-btn--primary">申请备件</button>
+    </div>
+    <p class="host-note">
+      以上是客户已有的工单系统。真实交付时本页一行代码都不改，只在模板末尾注入助手脚本；
+      助手打开时自动读取本页的工单号、设备型号（postMessage 上下文注入）。
+    </p>
+    <p class="host-disclaimer">
+      本演示使用虚构企业“宏远电梯”的模拟资料，非真实客户数据；回答由 AI 生成并附引用，
+      仅供参考，不替代具备资质的现场判断。
+    </p>
+  </section>
+
+  <!-- ============================================================
+       原型同款「演示控制台」：只存在于宿主演示页，交付产物不加载；
+       开关通过 window.MoqianWidget / iframe 传输层生效，不改 Widget 代码。
+       ============================================================ -->
+  <aside class="demo-console" id="demoConsole">
+    <button class="demo-console__tab" id="demoTab" title="演示控制">
+      <svg viewBox="0 0 24 24"><path d="M12 20a8 8 0 1 0 0-16 8 8 0 0 0 0 16Z"/><path d="M12 6v6l4 2"/></svg>
+      <span>演示控制</span>
+    </button>
+    <div class="demo-console__body" id="demoBody">
+      <div class="demo-title">原型演示控制台</div>
+      <label class="demo-row">
+        <span>宿主注入上下文<br/><small>设备型号 / 工单号自动带入</small></span>
+        <input type="checkbox" id="demoCtx" checked /><i></i>
+      </label>
+      <label class="demo-row">
+        <span>带出厂批次<br/><small>关掉后问「制动器间隙」会先追问批次</small></span>
+        <input type="checkbox" id="demoBatch" checked /><i></i>
+      </label>
+      <label class="demo-row demo-row--select">
+        <span>身份来源<br/><small>决定问答是否计入按人统计</small></span>
+        <select id="demoId">
+          <option value="host_injected">宿主注入 · 李伟（HY-ENG-006）</option>
+          <option value="gateway_sso">网关 SSO · 李伟（HY-ENG-006）</option>
+          <option value="password_login">平台密码登录 · 李伟（HY-ENG-006）</option>
+          <option value="anonymous">未识别 · 拿不到身份</option>
+          <option value="unclaimed">声明工号未开通 · HY-ENG-099</option>
+        </select>
+      </label>
+      <label class="demo-row">
+        <span>模拟弱网 / 井道断网<br/><small>下一条问答在传输层失败，看弱网条与错误卡</small></span>
+        <input type="checkbox" id="demoNet" /><i></i>
+      </label>
+      <label class="demo-row">
+        <span>模拟服务失败<br/><small>下一条问答失败一次，看失败卡与「重试 / 转人工」</small></span>
+        <input type="checkbox" id="demoFailSvc" /><i></i>
+      </label>
+      <label class="demo-row">
+        <span>模拟服务不可达<br/><small>冷启动连不上后端，看连接失败与「重试连接」</small></span>
+        <input type="checkbox" id="demoFailBoot" /><i></i>
+      </label>
+      <button class="demo-reset" id="demoReset">
+        <svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+        重置对话
+      </button>
+      <div class="demo-tip">可试：点示例问题；点步骤后的编号角标看引用定位；关掉「宿主注入上下文」再问平层问题，看单轮追问；
+        输入“不停电 / 短接安全回路”看安全拦截，“密码怎么重置”看证据不足拒答；身份切未识别看降级；
+        开「服务失败」点「重试」看兜底恢复；开「服务不可达」看连接失败态。
+        本机为真实后端：三个故障开关由宿主页在 iframe 传输层模拟；断线暂存与自动重发未实现（D-004）。
+      </div>
+    </div>
+  </aside>
+</main>
+
+<!-- 两行 script 接入：data-server 留空 = 同源；data-position 控制停靠位置 -->
+<script src="./loader.js" data-server="" data-position="right"></script>
+<script>
+  (function () {
+    'use strict';
+    /* 工单上下文取自「宏远电梯售后文档」语料：设备型号 HY-G1000/1.6-JXW、工单号 HY-WO-2026-0107；
+       B23 批次对应 2026 年新装梯（补遗 V1.2：制动器 DZS-3、间隙 0.20–0.40 mm）。
+       演示控制台可关掉批次，看系统先追问批次、再按批次作答。 */
+    var CONTEXT = { deviceModel: 'HY-G1000/1.6-JXW', ticketNo: 'HY-WO-2026-0107', batch: 'B23 及以后' };
+    var IDENTITIES = {
+      host_injected: { source: 'host_injected', claimedEngineerId: 'HY-ENG-006' },
+      gateway_sso: { source: 'gateway_sso', claimedEngineerId: 'HY-ENG-006' },
+      password_login: { source: 'password_login', claimedEngineerId: 'HY-ENG-006' },
+      anonymous: { source: 'anonymous', claimedEngineerId: null },
+      unclaimed: { source: 'host_injected', claimedEngineerId: 'HY-ENG-099' }
+    };
+    var state = { ctx: true, batch: true, identity: 'host_injected', net: false, svcOnce: false };
+
+    function frameEl() { return document.querySelector('#moqian-widget-panel iframe'); }
+    function frameWin() { var f = frameEl(); return f && f.contentWindow; }
+
+    function setContext() {
+      if (!window.MoqianWidget) return;
+      var ctx = {};
+      if (state.ctx) {
+        Object.keys(CONTEXT).forEach(function (key) { ctx[key] = CONTEXT[key]; });
+        if (!state.batch) delete ctx.batch;
+      }
+      window.MoqianWidget.setContext(ctx, IDENTITIES[state.identity]);
+    }
+
+    /* 故障模拟发生在 iframe 传输层（真实 fetch 被拦截），不改 Widget 代码、不伪造消息数据。 */
+    function patchFetch() {
+      var w = frameWin();
+      if (!w || w.__moqianDemoPatched || typeof w.fetch !== 'function') return;
+      var orig = w.fetch;
+      w.fetch = function (input, init) {
+        var url = typeof input === 'string' ? input : ((input && input.url) || '');
+        var isChat = url.indexOf('/chat') >= 0;
+        if (isChat && state.net) {
+          return Promise.reject(new TypeError('模拟弱网：连接中断'));
+        }
+        if (isChat && state.svcOnce) {
+          state.svcOnce = false;
+          var box = document.getElementById('demoFailSvc');
+          if (box) box.checked = false;
+          return Promise.reject(new TypeError('模拟服务失败（一次性）'));
+        }
+        return orig.apply(w, arguments);
+      };
+      w.__moqianDemoPatched = true;
+    }
+
+    function applyNet() {
+      var w = frameWin();
+      if (!w) return;
+      try {
+        w.dispatchEvent(new Event(state.net ? 'offline' : 'online'));
+      } catch (e) { /* 老浏览器忽略 */ }
+    }
+
+    function afterNextLoad(fn) {
+      var f = frameEl();
+      if (!f) return;
+      var handler = function () { f.removeEventListener('load', handler); fn(); };
+      f.addEventListener('load', handler);
+    }
+
+    /* 演示入口码与宿主页 URL 一致：重载 iframe 时必须原样带上，
+       否则关掉「模拟服务不可达」后会掉回"需要入口码"的拦截页。 */
+    var DEMO_CODE = '';
+    try {
+      DEMO_CODE = new URLSearchParams(location.search).get('code') || '';
+    } catch (e) { /* 老浏览器忽略 */ }
+
+    function frameSrc(server) {
+      var url = 'widget.html?server=' + encodeURIComponent(server);
+      if (DEMO_CODE) url += '&code=' + encodeURIComponent(DEMO_CODE);
+      return url;
+    }
+
+    function reloadFrame(badServer) {
+      var f = frameEl();
+      if (!f) return;
+      afterNextLoad(function () { patchFetch(); applyNet(); setContext(); });
+      f.src = frameSrc(badServer ? 'http://127.0.0.1:9' : '');
+    }
+
+    document.getElementById('demoTab').addEventListener('click', function () {
+      document.getElementById('demoConsole').classList.toggle('is-open');
+    });
+
+    document.getElementById('demoCtx').addEventListener('change', function (e) {
+      state.ctx = e.target.checked;
+      setContext();
+    });
+
+    document.getElementById('demoBatch').addEventListener('change', function (e) {
+      state.batch = e.target.checked;
+      setContext();
+    });
+
+    document.getElementById('demoId').addEventListener('change', function (e) {
+      state.identity = e.target.value;
+      setContext();
+    });
+
+    document.getElementById('demoNet').addEventListener('change', function (e) {
+      state.net = e.target.checked;
+      applyNet();
+    });
+
+    document.getElementById('demoFailSvc').addEventListener('change', function (e) {
+      state.svcOnce = e.target.checked;
+    });
+
+    document.getElementById('demoFailBoot').addEventListener('change', function (e) {
+      reloadFrame(e.target.checked);
+    });
+
+    document.getElementById('demoReset').addEventListener('click', function () {
+      state.ctx = true;
+      state.batch = true;
+      state.identity = 'host_injected';
+      state.net = false;
+      state.svcOnce = false;
+      document.getElementById('demoCtx').checked = true;
+      document.getElementById('demoBatch').checked = true;
+      document.getElementById('demoId').value = 'host_injected';
+      document.getElementById('demoNet').checked = false;
+      document.getElementById('demoFailSvc').checked = false;
+      document.getElementById('demoFailBoot').checked = false;
+      if (window.MoqianWidget) {
+        afterNextLoad(function () { patchFetch(); applyNet(); setContext(); });
+        window.MoqianWidget.reset();
+      }
+    });
+
+    patchFetch();
+    afterNextLoad(function () { patchFetch(); setContext(); });
+    setContext();
+    /* 与原型一致：打开宿主演示页即展开助手面板 */
+    if (window.MoqianWidget) window.MoqianWidget.open();
+  })();
+</script>
+</body>
+</html>

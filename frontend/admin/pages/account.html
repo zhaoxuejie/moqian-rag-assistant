@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>我的账号 · 售后知识助手管理台</title>
+<link rel="icon" type="image/svg+xml" href="../favicon.svg" />
+<script src="../controllers/theme-boot.js?v=20261081"></script>
+<link rel="stylesheet" href="/ui-design/tokens.css" />
+<link rel="stylesheet" href="../styles/admin.css?v=20261081" />
+</head>
+<body data-page="account">
+<div class="layout">
+
+  <!-- 侧边栏由 layout.js 注入（单点维护），页面只留挂载点 -->
+  <aside class="side" id="appSide"></aside>
+
+  <div class="main">
+    <header class="topbar">
+      <h1>我的账号</h1>
+      <span class="topbar__sub">个人域：只有你自己的记录。知识治理相关页面只有管理员可见</span>
+      <div class="topbar__right">
+        <span class="topbar__pill">
+          <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          本机环境 · 真实数据
+        </span>
+      </div>
+    </header>
+
+    <main class="content">
+      <!-- 越权访问的提示：普通用户直接输治理域网址时回到本页并带 ?denied= -->
+      <div class="warnbar warnbar--amber" id="deniedBar" hidden>
+        <svg viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4M12 17h.01"/></svg>
+        <span id="deniedText">该页面仅管理员可见，已回到「我的账号」。</span>
+      </div>
+
+      <!-- 各卡片间距统一 16px（与其它页面一致） -->
+      <div class="card" style="margin-bottom:16px">
+        <div class="card__head">
+          <h2>账号信息</h2>
+          <span class="card__head spacer"></span>
+          <span style="font-size:11.5px;color:#8a97a3">账号即工号：唯一、不可修改、不可复用</span>
+        </div>
+        <div class="tbl-wrap">
+          <table class="tbl">
+            <tbody id="meRows"></tbody>
+          </table>
+        </div>
+        <div class="metric-legend" style="padding:12px 18px 16px">
+          <span><b>角色与状态只能由管理员修改</b>——本产品刻意不做细粒度权限，只有管理员 / 普通用户两级</span>
+          <span><b>工号不可改</b>：人员变动只能"禁用旧号 + 建新号"，这样历史日志与指标才能追溯</span>
+        </div>
+      </div>
+
+      <div class="split" style="margin-bottom:16px">
+        <div class="card">
+          <div class="card__head"><h2>身份来源</h2></div>
+          <div class="card__body" id="idBox"></div>
+        </div>
+        <div class="card">
+          <div class="card__head">
+            <h2>安全与登录</h2>
+            <span class="card__head spacer"></span>
+            <button class="btn btn--ghost btn--sm" id="btnPwd" type="button">修改密码</button>
+          </div>
+          <div class="card__body" id="pwdBox"></div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<div class="toasts" id="toasts"></div>
+<script src="../adapters/real-api.js?v=20261081"></script>
+<script src="../adapters/users-api.js?v=20261081"></script>
+<script src="../controllers/layout.js?v=20261081"></script>
+<script src="../controllers/app.js?v=20261081"></script>
+<script src="../controllers/preview.js?v=20261082"></script>
+<script src="../controllers/account.js?v=20261081"></script>
+</body>
+</html>

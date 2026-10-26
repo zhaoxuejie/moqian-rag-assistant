@@ -1,0 +1,4365 @@
+# ============================================================
+# moqian-service-assistant · 接口契约（S0 草案）
+#
+# 本文件是前后端唯一的机器可读约定，形状以本文件为准。
+
+#
+# 本文件的角色：前端（frontend/widget、frontend/admin）与后端（app / modules）唯一的机器可读约定。
+#   改接口 = 改本文件 + 同步前端适配层，缺一不可。
+#
+# 约定（[已定]，来自原型与文档）：
+#   1. JSON 字段用 camelCase（与原型前端一致）；数据库列名 snake_case，转换在 app 层做。
+#   2. 所有 id 以字符串返回（原型 id 形如 "doc-1" / "qa-2481" / "M642"），不暴露自增整数。
+#   3. 集合接口统一返回 { items, pagination, stats? }；单个资源直接返回对象。
+#   4. 错误统一返回 { code, message, detail? }，code 供前端分支，message 可直接展示。
+#   5. 分页从 1 开始：page / pageSize（默认 20，上限 100）。
+#   6. 数字一律后端算好再返回，前端零重算（原型映射表 §3 数字同源表）。
+#   7. 身份只做归属与统计，不参与授权；/widget/* 与 /admin/* 凭证双链隔离。
+#
+# 标记说明：[待确认] 表示文档未定、开发中需拍板；集中在 info.x-pending-questions。
+# ============================================================
+
+openapi: 3.1.0
+
+info:
+  title: 陌阡售后知识助手 · 接口契约
+  version: 0.1.0
+  summary: S0 草案，覆盖 widget 问答链与 admin 治理链
+  description: |
+    两条链路的边界就是安全边界：
+
+    - **工程师链**：`/widget/*` 与 `/chat` —— 只回答、只记录，不产出授权凭证；
+    - **治理链**：`/admin/*` —— 只接受管理员自身会话凭证，工程师侧 sessionId 不可用（widget spec §10.1）。
+
+    所有事实性回答的引用由服务端程序校验，非法引用整条剥离（architecture §8 ADR4）。
+    本契约只描述**形状**，不描述检索与生成策略。
+  termsOfService: ""
+  contact:
+    name: 项目仓库
+    url: https://github.com/your-org/moqian-service-assistant-rag-maintenance
+  license:
+    name: Apache-2.0
+  x-baseline: v0.4
+  x-status: draft-s0
+  x-id-convention: 所有资源 id 为字符串
+  x-json-case: camelCase
+  x-pending-questions:
+    - id: Q1
+      topic: 管理员会话凭证形式
+      detail: 已定：JWT（HS256），登录签发，Authorization Bearer 携带
+      status: 已定
+      decision: JWT HS256，密钥 JWT_SECRET 由 .env 注入
+    - id: Q2
+      topic: 图形验证码
+      detail: 返回 SVG/PNG base64、独立图片 URL，还是内网部署直接关闭（文档原型默认开启）
+      status: "[待确认]"
+    - id: Q3
+      topic: 知识源上传形态
+      detail: multipart 单文件直传、对象存储预签名，还是后台目录登记（单文件体积上限未定）
+      status: "[待确认]"
+    - id: Q4
+      topic: SSE 断线续传
+      detail: 已定：不做服务端重放，断线后客户端整包重问
+      status: 已定
+      decision: 无 resume 字段；客户端暂存同一 question 重发，不重复用户气泡
+    - id: Q5
+      topic: 周报返回粒度
+      detail: 结构化 sections[].metrics[]（前端渲染），还是服务端预渲染 Markdown
+      status: "[待确认]"
+    - id: Q6
+      topic: 知识缺口与沉淀的关联
+      detail: gaps.coveredBy 指向沉淀 id、文档 id，还是仅存自由文本
+      status: "[待确认]"
+    - id: Q7
+      topic: 评测指标定义细节
+      detail: citationVerifiable / underRefusal / overRefusal 的判定规则与分母口径，需与评测脚本一并定稿
+      status: "[待确认]"
+    - id: Q8
+      topic: 主题配置归属
+      detail: PUT /admin/theme 与 PUT /admin/config 的 brand 字段是否合并为同一写入口
+      status: "[待确认]"
+    - id: Q9
+      topic: 反馈 saved 的语义
+      detail: "type=saved 是否同时进入「我的收藏」与「知识沉淀候选」，还是仅收藏"
+      status: "[待确认]"
+    - id: Q10
+      topic: 待开通工号激活
+      detail: 激活时是否必须补填姓名与小组（否则统计按工号展示）
+      status: "[待确认]"
+
+servers:
+  - url: http://127.0.0.1:8000
+    description: 本机 docker compose（S0 骨架已实现 /health）
+  - url: http://localhost:8000
+    description: 同上，localhost 别名
+  - url: https://[待确认]
+    description: 生产部署地址与反向代理前缀未定
+
+tags:
+  - name: ops
+    description: 探活与运维（不依赖业务数据）
+  - name: widget
+    description: 工程师端浮层（会话、配置、证据、反馈、转人工）
+  - name: chat
+    description: 问答主链路（SSE 流式）
+  - name: admin-auth
+    description: 后台登录与个人域
+  - name: admin-knowledge
+    description: 知识源、切片、解析任务
+  - name: admin-governance
+    description: 沉淀、日志、缺口、用户与身份治理
+  - name: admin-stats
+    description: 驾驶舱、北极星、可识别率、周报
+  - name: admin-config
+    description: 系统配置、主题、评测
+
+security:
+  - adminBearer: []
+
+paths:
+  # ==========================================================
+  # ops
+  # ==========================================================
+  /health:
+    get:
+      tags: [ops]
+      summary: 探活（不依赖数据库）
+      operationId: getHealth
+      security: []
+      responses:
+        "200":
+          description: 服务活着
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Health"
+        "503":
+          $ref: "#/components/responses/ServiceUnavailable"
+
+  /health/db:
+    get:
+      tags: [ops]
+      summary: 数据库连通性
+      operationId: getHealthDb
+      security: []
+      responses:
+        "200":
+          description: 数据库可用或降级（用 status 区分）
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthDb"
+
+  # ==========================================================
+  # widget：配置 / 会话 / 证据 / 反馈 / 转人工
+  # ==========================================================
+  /widget/config:
+    get:
+      tags: [widget]
+      summary: 浮层启动配置（欢迎语、示例问题、品牌色由 app 层注入）
+      description: |
+        行业词汇与文案**不写死在 widget 代码里**（architecture §4.1 纪律 6），
+        由 app 层按部署配置返回。会话未建立时也可调用（无状态）。
+        契约形状即文案规范。
+      operationId: getWidgetConfig
+      security: []
+      responses:
+        "200":
+          description: 启动配置
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WidgetConfig"
+
+  /widget/session:
+    post:
+      tags: [widget]
+      summary: 建立会话并解析身份（声明 + 在册校验）
+      description: |
+        身份是**声明 + 在册校验**，不是认证（PRD §2.3）：
+        - 前端只上报来源与声明工号，**由后端裁决最终 source**；
+        - 解析失败一律降级为未识别（`identified: false`），**不阻断**后续问答；
+        - 该 sessionId 对 `/admin/*` 无效（双链隔离）。
+      operationId: createWidgetSession
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SessionRequest"
+      responses:
+        "200":
+          description: 会话已建立；身份可能为未识别
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionResponse"
+        "401":
+          description: |
+            演示站入口码缺失或无效（仅 DEMO_ENABLED 时触发）。
+            - `DEMO_CODE_REQUIRED`：未带 demoCode；
+            - `DEMO_CODE_INVALID`：码不存在、已停用或已过期。
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  /chat:
+    post:
+      tags: [chat]
+      summary: 提问（SSE 流式）
+      description: |
+        事件顺序与前端适配层严格对应：
+
+        | 事件 | 何时发 | 载荷 |
+        |---|---|---|
+        | `structured` | 总是（第一帧） | SseStructured：结构化条件，未知字段留空 |
+        | `conflict` | 可选，检索到多版本互不通用 | SseConflict |
+        | `ask` | 条件不足时（**仅首轮**） | SseAsk：追问卡 |
+        | `steps` | 正常回答，逐条增量 | SseSteps：每一步自带 citations |
+        | `citations` | 正常回答，步骤发完后 | SseCitations：引用清单 |
+        | `done` | 正常收尾 | SseDone：messageId 等 |
+        | `gap` | 证据不足拒答 | SseGap |
+        | `safe` | 安全拦截 | SseSafe |
+        | `refused` | 演示额度用完（仅演示站） | SseRefused |
+        | `error` | 服务异常 | SseError |
+
+        **硬约束**：
+        - 追问一轮为限 —— 请求已带 `clarify` 时服务端**不得再返回 `ask`**，只允许 `conflict` / `gap`；
+        - 安全类问题（带电、短接安全回路、救援、撬门、盘车）**不生成任何操作步骤**，只能 `safe` + 引用安规原文；
+        - 引用编号由「步骤里首次出现的顺序」派生，服务端在 `citations` 里按同序返回，前端不另编号；
+        - 结构化查询中未知字段留空走全库检索，禁止推测补全。
+      operationId: postChat
+      security:
+        - widgetSession: []
+      parameters:
+        - name: X-Widget-Session
+          in: header
+          required: true
+          schema:
+            type: string
+          description: POST /widget/session 返回的 sessionId
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChatRequest"
+      responses:
+        "200":
+          description: |
+            SSE 流（`text/event-stream`），每帧 `event: <name>` + `data: <JSON>`。
+            服务端每个事件后立即 flush；失败则改用 `error` 事件收尾并关闭流。
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              description: 固定 no-cache
+            X-Accel-Buffering:
+              schema:
+                type: string
+              description: 固定 no（反代不许缓冲）
+          content:
+            text/event-stream:
+              schema:
+                type: string
+                description: |
+                  SSE 文本帧序列。事件名与载荷结构见本 operation 的 x-sse-events，
+                  以及 components.schemas 下 Sse* 系列。
+              examples:
+                normalAnswer:
+                  summary: 正常回答（节选）
+                  value: |
+                    event: structured
+                    data: {"symptom":"周期性机械异响 + E07 报警","model":"ZX-300","batch":"B23","code":"E07","missing":[]}
+
+                    event: steps
+                    data: {"index":1,"text":"先确认报警触发时刻与频次，区分启动段/匀速段/制动段。","citations":["M643"]}
+
+                    event: citations
+                    data: {"items":[{"evidenceId":"M643","kind":"manual","title":"《ZX-300 电梯维修手册》§6.4.3","loc":"E07 报警码处置流程 · 第 131 页","batch":null}]}
+
+                    event: done
+                    data: {"messageId":"msg-1024","citationsCount":3,"refused":false}
+                askClarify:
+                  summary: 单轮追问（节选）
+                  value: |
+                    event: structured
+                    data: {"symptom":"平层精度偏差","model":"ZX-300","batch":null,"code":null,"missing":["batch"]}
+
+                    event: ask
+                    data: {"field":"batch","title":"先确认一个条件：本梯出厂批次","body":"平层调整方法按批次完全不同——B22 及以后用编码器自学习，B21 及以前用控制柜电位器。选定后直接给对应方案。","options":[{"value":"B22+","label":"B22 及以后","hint":"编码器自学习"},{"value":"B21-","label":"B21 及以前","hint":"控制柜电位器"},{"value":"unknown","label":"不确定","hint":"并列展示两套方法"}]}
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+        "429":
+          description: 限流（阈值 [待确认]）
+      x-sse-events:
+        structured: "#/components/schemas/SseStructured"
+        conflict: "#/components/schemas/SseConflict"
+        ask: "#/components/schemas/SseAsk"
+        steps: "#/components/schemas/SseSteps"
+        citations: "#/components/schemas/SseCitations"
+        done: "#/components/schemas/SseDone"
+        gap: "#/components/schemas/SseGap"
+        safe: "#/components/schemas/SseSafe"
+        refused: "#/components/schemas/SseRefused"
+        error: "#/components/schemas/SseError"
+
+  /widget/evidence/{evidenceId}:
+    get:
+      tags: [widget]
+      summary: 取引用原文（展开引用卡时按需拉取）
+      description: |
+        检索命中时 `citations` 已含标题与出处摘要；点开引用卡再取全文，避免首屏塞整本手册。
+        只返回**本轮命中证据集内**的 evidenceId，不存在则 404（不泄露库内其它切片）。
+      operationId: getWidgetEvidence
+      security:
+        - widgetSession: []
+      parameters:
+        - name: evidenceId
+          in: path
+          required: true
+          schema:
+            type: string
+          examples:
+            manual:
+              value: M642
+      responses:
+        "200":
+          description: 证据单元全文与出处
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Evidence"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /widget/feedback:
+    post:
+      tags: [widget]
+      summary: 反馈操作条（已解决 / 未解决 / 收藏）
+      description: |
+        三个按钮状态互斥/独立规则见 widget spec §4.6。
+        `saved` 的语义（是否同时进沉淀候选）见 Q9。
+        未识别会话的反馈照常记录，但**只进会话级指标**，不计入按人指标（PRD §5.7）。
+      operationId: postWidgetFeedback
+      security:
+        - widgetSession: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FeedbackRequest"
+      responses:
+        "200":
+          description: 已记录
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SimpleOk"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /widget/handoff:
+    post:
+      tags: [widget]
+      summary: 转人工（返回热线与上下文快照）
+      description: |
+        P0 只做热线提示，不对接真实客服系统（PRD P0 边界）。
+        返回的 `context` 必须与当前会话实际一致；空会话返回 `none` 占位而不是编造条数
+        （widget spec §11 验收 15）。
+      operationId: postWidgetHandoff
+      security:
+        - widgetSession: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/HandoffRequest"
+      responses:
+        "200":
+          description: 热线与上下文
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HandoffResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  # ==========================================================
+  # admin：认证与个人域
+  # ==========================================================
+  /admin/auth/captcha:
+    post:
+      tags: [admin-auth]
+      summary: 取图形验证码
+      description: "是否启用由 `systemConfig.security.captchaEnabled` 决定；关闭时返回 `enabled: false`。"
+      operationId: postAdminCaptcha
+      security: []
+      responses:
+        "200":
+          description: 验证码挑战
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CaptchaChallenge"
+      x-pending-question: Q2
+
+  /admin/auth/brand:
+    get:
+      tags: [admin-auth]
+      summary: 登录页公开品牌
+      description: |
+        登录页在未登录时也需要显示产品名/组织名/主色。此接口只返回 brand 组的展示字段，
+        不包含 LLM/embedding/reranker 端点、密钥或任何检索配置。
+      operationId: getAdminAuthBrand
+      security: []
+      responses:
+        "200":
+          description: 品牌展示字段
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BrandSettings"
+
+  /admin/auth/login:
+    post:
+      tags: [admin-auth]
+      summary: 管理员登录
+      description: |
+        登录后返回的凭证只用于 `/admin/*`；`role` 只有 `admin` / `user` 两级，
+        **不做 RBAC**（PRD §2.3）。`user` 角色只能访问 `/account` 域（ADM-077/088）。
+        连续失败锁定策略：见 Q1 定稿后补。
+      operationId: postAdminLogin
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: 登录成功
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+      x-pending-question: Q1
+
+  /admin/me:
+    get:
+      tags: [admin-auth]
+      summary: 当前登录人
+      operationId: getAdminMe
+      responses:
+        "200":
+          description: 账号信息
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminUser"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /admin/me/password:
+    put:
+      tags: [admin-auth]
+      summary: 修改本人口令
+      description: 仅 `credential=local` 的账号可改；域账号口令由 AD 域管（返回 409 code=DOMAIN_ACCOUNT）。
+      operationId: putAdminMePassword
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChangePasswordRequest"
+      responses:
+        "200":
+          description: 已修改
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SimpleOk"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /admin/me/messages:
+    get:
+      tags: [admin-auth]
+      summary: 我的问答记录（仅本人，未识别会话不出现）
+      operationId: getAdminMeMessages
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+        - $ref: "#/components/parameters/DateFrom"
+        - $ref: "#/components/parameters/DateTo"
+      responses:
+        "200":
+          description: 分页问答记录
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QaMessagePage"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /admin/me/saved:
+    get:
+      tags: [admin-auth]
+      summary: 我的收藏
+      operationId: getAdminMeSaved
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+      responses:
+        "200":
+          description: 分页收藏
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SavedItemPage"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  # ==========================================================
+  # admin：知识源 / 切片 / 任务
+  # ==========================================================
+  /admin/documents:
+    get:
+      tags: [admin-knowledge]
+      summary: 知识源列表（含四态统计与筛选）
+      description: |
+        `withStats=1` 时返回 `stats`（分类计数、证据单元总数），供页面顶部卡片与页脚「共 N 条」；
+        数字必须与本列表同源（原型映射表 §3）。
+      operationId: listAdminDocuments
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+        - name: q
+          in: query
+          schema:
+            type: string
+          description: 关键词（标题/文件编号/型号）
+        - name: category
+          in: query
+          schema:
+            type: string
+            enum: [manual, faq, table, ticket, drawing]
+        - name: format
+          in: query
+          schema:
+            type: string
+            enum: [pdf, docx, txt, md, xlsx, csv, ticketpkg, drawingindex]
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [uploaded, parsing, parsed, failed, disabled]
+        - name: lifecycle
+          in: query
+          schema:
+            type: string
+            enum: [current, superseded, disabled, archived]
+            description: >-
+              现行版 / 已被替代 / 停用 / 已归档。**不传时默认不返回已归档**（治理视图保持干净）；
+              要查看归档资料请显式传 `archived`。
+        - name: withStats
+          in: query
+          schema:
+            type: boolean
+            default: false
+      responses:
+        "200":
+          description: 分页知识源
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DocumentPage"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+    post:
+      tags: [admin-knowledge]
+      summary: 上传知识源（入库后自动排队解析）
+      description: |
+        上传成功返回 `uploaded` 状态与 jobId；解析完成后转 `parsed`，失败转 `failed`。
+        原件只落盘不读回（`file_path` 相对 `data/original-docs/`），并记录 `fileSha256` 防重复入库。
+      operationId: uploadAdminDocument
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file, category]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: 原件（PDF/Word/Excel/工单包/图纸索引）
+                category:
+                  type: string
+                  enum: [manual, faq, table, ticket, drawing]
+                title:
+                  type: string
+                docCode:
+                  type: string
+                  description: 文件编号（如 3CA0141-12）
+                deviceModel:
+                  type: string
+                  description: 型号/产品系列；未知留空，禁止推测
+                batch:
+                  type: string
+                  description: >-
+                    批次；首批资料无，留空。整份文档一个默认值：解析时切片继承它，
+                    但 FAQ（Excel）可在「适用批次」列按行覆盖——行内留空才用这里的值。
+                manualVersion:
+                  type: string
+                  description: 版本（如 Ver.3 / v3.2）
+                effectiveDate:
+                  type: string
+                  format: date
+      responses:
+        "202":
+          description: 已接收，排队解析
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DocumentUploadAccepted"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "413":
+          description: 超过体积上限（上限值 [待确认]）
+        "422":
+          $ref: "#/components/responses/ValidationError"
+      x-pending-question: Q3
+
+  /admin/documents/{documentId}:
+    get:
+      tags: [admin-knowledge]
+      summary: 知识源详情
+      operationId: getAdminDocument
+      parameters:
+        - $ref: "#/components/parameters/DocumentId"
+      responses:
+        "200":
+          description: 详情（含解析统计与出处维度）
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DocumentDetail"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+    patch:
+      tags: [admin-knowledge]
+      summary: 改元数据 / 生命周期
+      description: |
+        可改：标题、文件编号、型号、批次、版本、生效日期、lifecycle。
+        **改批次/版本会触发相关切片重新标注**（多版本冲突展示依赖此字段，PRD §5.3）。
+      operationId: patchAdminDocument
+      parameters:
+        - $ref: "#/components/parameters/DocumentId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DocumentPatch"
+      responses:
+        "200":
+          description: 已更新
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Document"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /admin/documents/{documentId}/enable:
+    post:
+      tags: [admin-knowledge]
+      summary: 启停用（软删除，不物理删切片）
+      operationId: enableAdminDocument
+      parameters:
+        - $ref: "#/components/parameters/DocumentId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [enabled]
+              properties:
+                enabled:
+                  type: boolean
+      responses:
+        "200":
+          description: 已切换
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Document"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /admin/documents/{documentId}/archive:
+    post:
+      tags: [admin-knowledge]
+      summary: 归档知识源（不是物理删除）
+      description: |
+        把知识源移出默认列表与检索池：`lifecycle` 置为 `archived`。
+        **切片与原件全部保留**，可用 `/restore` 恢复；不做物理删除，因为证据单元是
+        已发出答案的引用目标，删掉会让引用失效（PRD §5.1 可核验）。
+        与「停用」的区别：停用仍在列表里（`lifecycle=disabled`），归档默认不出现在列表。
+      operationId: archiveAdminDocument
+      parameters:
+        - $ref: "#/components/parameters/DocumentId"
+      responses:
+        "200":
+          description: 已归档
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Document"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /admin/documents/{documentId}/restore:
+    post:
+      tags: [admin-knowledge]
+      summary: 恢复已归档 / 已停用的知识源
+      description: 把 `lifecycle` 置回 `current`，重新出现在列表并回到检索池。
+      operationId: restoreAdminDocument
+      parameters:
+        - $ref: "#/components/parameters/DocumentId"
+      responses:
+        "200":
+          description: 已恢复
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Document"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /admin/documents/{documentId}/reparse:
+    post:
+      tags: [admin-knowledge]
+      summary: 重新解析（重建切片与向量）
+      description: |
+        对已建档文档重新排队 `parse` 任务：worker 解析完成后按文档级联替换切片。
+        同一文档已有 queued/running 任务时返回 409，避免重复解析。
+      operationId: reparseAdminDocument
+      parameters:
+        - $ref: "#/components/parameters/DocumentId"
+      responses:
+        "202":
+          description: 已重新排队
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Job"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /admin/documents/{documentId}/file:
+    get:
+      tags: [admin-knowledge]
+      summary: 读取知识源原件
+      description: |
+        按文档 id 返回 `data/original-docs` 下的原件，默认 `inline` 供浏览器预览；
+        `download=1` 时以附件下载。只允许治理管理员，且不接受前端传入的任意路径。
+      operationId: getAdminDocumentFile
+      parameters:
+        - $ref: "#/components/parameters/DocumentId"
+        - name: download
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+      responses:
+        "200":
+          description: 原件字节流
+          headers:
+            Content-Disposition:
+              schema:
+                type: string
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+            text/plain:
+              schema:
+                type: string
+                format: binary
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /admin/documents/{documentId}/preview:
+    get:
+      tags: [admin-knowledge]
+      summary: 原文预览描述
+      description: |
+        PDF 返回 `kind=pdf`（前端用浏览器阅读器打开 `/file`）；文本类直接返回内容；
+        Word / Excel 当前返回 `kind=unsupported`，不假装能预览。工单沉淀文档没有原件，
+        两个接口都返回 404。
+      operationId: previewAdminDocument
+      parameters:
+        - $ref: "#/components/parameters/DocumentId"
+      responses:
+        "200":
+          description: 预览描述
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DocumentPreview"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /admin/documents/{documentId}/chunks:
+    get:
+      tags: [admin-knowledge]
+      summary: 切片预览（治理手术台）
+      description: |
+        切片是知识库原子（architecture §5.1）。列表要能直接判断"这条切片值不值得留"，
+        因此每项都带出处（章节号 / 页码 / 工作表行号 / 图号）与状态。
+      operationId: listAdminDocumentChunks
+      parameters:
+        - $ref: "#/components/parameters/DocumentId"
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+        - name: q
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, disabled]
+      responses:
+        "200":
+          description: 分页切片
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChunkPage"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /admin/documents/{documentId}/versions:
+    get:
+      tags: [admin-knowledge]
+      summary: 同一型号/文件编号的版本谱系
+      description: |
+        用于"现行版 / 已被替代"关系展示；多版本冲突展示（PRD §5.3）依赖这里的
+        model + batch + manualVersion 三元组。
+      operationId: listAdminDocumentVersions
+      parameters:
+        - $ref: "#/components/parameters/DocumentId"
+      responses:
+        "200":
+          description: 版本列表（按生效日期倒序）
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Document"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /admin/chunks/{chunkId}:
+    patch:
+      tags: [admin-knowledge]
+      summary: 编辑 / 启停用切片
+      description: 编辑正文或出处元数据后，服务端重算分词与向量（异步 job）；停用即从检索池剔除但不删行。
+      operationId: patchAdminChunk
+      parameters:
+        - name: chunkId
+          in: path
+          required: true
+          schema:
+            type: string
+          examples:
+            sample:
+              value: ch-601
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChunkPatch"
+      responses:
+        "200":
+          description: 已更新
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Chunk"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /admin/jobs:
+    get:
+      tags: [admin-knowledge]
+      summary: 解析任务列表（四态计数）
+      operationId: listAdminJobs
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [queued, running, done, failed]
+        - name: withStats
+          in: query
+          schema:
+            type: boolean
+            default: false
+      responses:
+        "200":
+          description: 分页任务
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JobPage"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /admin/jobs/{jobId}:
+    patch:
+      tags: [admin-knowledge]
+      summary: 取消任务（暂停/继续本批次未开放）
+      description: |
+        状态机 `queued → running → done|failed|cancelled`。
+        取消：queued 立即置 cancelled；running 置 cancel_requested，worker 在阶段边界退出为
+        cancelled（不中断进行中的模型/IO 调用）。done/failed/cancelled 再取消返回 409。
+        pause/resume 契约保留，本批次返回 409 并说明未开放。
+      operationId: patchAdminJob
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [action]
+              properties:
+                action:
+                  type: string
+                  enum: [pause, resume, cancel]
+      responses:
+        "200":
+          description: 已更新
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Job"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /admin/jobs/{jobId}/retry:
+    post:
+      tags: [admin-knowledge]
+      summary: 重试失败任务
+      operationId: retryAdminJob
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "202":
+          description: 已重新排队
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Job"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  # ==========================================================
+  # admin：沉淀 / 日志 / 缺口
+  # ==========================================================
+  /admin/settlements:
+    get:
+      tags: [admin-governance]
+      summary: 知识沉淀待确认清单
+      description: 沉淀必须人工确认才入库（PRD §5.4 / 纪律 8）；这里的每一笔都是模型产出，不是知识。
+      operationId: listAdminSettlements
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, confirmed, rejected]
+        - name: channel
+          in: query
+          schema:
+            type: string
+            enum: [ticket, favorite, manual]
+        - name: withStats
+          in: query
+          schema:
+            type: boolean
+            default: false
+      responses:
+        "200":
+          description: 分页沉淀
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SettlementPage"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /admin/settlements/from-ticket:
+    post:
+      tags: [admin-governance]
+      summary: 工单完成 → 生成待确认候选
+      description: |
+        FR-K5 的第二条进水管：工单完成后由管理员触发「一键沉淀」。
+        当前产品没有独立工单表，`sessions.hostContext.ticketNo` 是唯一锚点
+        （P0 不写回宿主工单系统）。接口按**工单号**聚合所有非管理自测会话中的
+        已解决轮次，产出 `channel=ticket` 的**待确认**候选；必须人工确认才入库（纪律 8）。
+        幂等键是工单号：同一工单已有待确认/已入库候选时返回既有条目（`created=false`）。
+      operationId: createAdminSettlementFromTicket
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SettlementFromTicketRequest"
+      responses:
+        "200":
+          description: 候选（新建或幂等返回既有）
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SettlementFromTicketResult"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  /admin/settlements/{settlementId}/confirm:
+    post:
+      tags: [admin-governance]
+      summary: 确认入库（生成切片）
+      description: |
+        确认后按确认内容生成切片（evidence 出处随来源走：工单号 / 行号 / 页码），
+        并写入 reviewLog。拒绝与确认都必须留痕。
+      operationId: confirmAdminSettlement
+      parameters:
+        - name: settlementId
+          in: path
+          required: true
+          schema:
+            type: string
+          examples:
+            sample:
+              value: st-101
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SettlementDecision"
+      responses:
+        "200":
+          description: 已入库
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SettlementConfirmation"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /admin/settlements/{settlementId}/reject:
+    post:
+      tags: [admin-governance]
+      summary: 拒绝入库
+      operationId: rejectAdminSettlement
+      parameters:
+        - name: settlementId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SettlementDecision"
+      responses:
+        "200":
+          description: 已拒绝
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Settlement"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /admin/messages:
+    get:
+      tags: [admin-governance]
+      summary: 问答日志（含本页统计）
+      description: |
+        `withStats=1` 返回 `stats`：本页轮数与可识别轮数（页脚「本页 N 轮 · 可识别 M 轮」）。
+        统计查询**统一排除** `channel=admin_preview`（管理自测不进指标，PRD §5.7）。
+      operationId: listAdminMessages
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+        - $ref: "#/components/parameters/DateFrom"
+        - $ref: "#/components/parameters/DateTo"
+        - name: outcome
+          in: query
+          schema:
+            type: string
+            enum: [answered, gap, safe, error]
+        - name: resolved
+          in: query
+          schema:
+            type: string
+            enum: [resolved, unresolved, none]
+        - name: identity
+          in: query
+          schema:
+            type: string
+            description: 按身份来源筛；`unidentified` 表示未识别
+            enum: [gateway_sso, host_injected, password_login, anonymous, unidentified]
+        - name: withStats
+          in: query
+          schema:
+            type: boolean
+            default: false
+      responses:
+        "200":
+          description: 分页日志
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QaMessagePage"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /admin/messages/{messageId}/chain:
+    get:
+      tags: [admin-governance]
+      summary: 单轮问答详情（结构化条件 / 命中 / 引用 / 剥离记录）
+      description: |
+        用来回答"这条回答为什么是它"：结构化改写、检索命中、最终引用、被剥离的非法引用、
+        拒答原因（gap/safe）。同一会话的多轮按 `rounds` 升序给出。
+      operationId: getAdminMessageChain
+      parameters:
+        - name: messageId
+          in: path
+          required: true
+          schema:
+            type: string
+          examples:
+            sample:
+              value: qa-2481
+      responses:
+        "200":
+          description: 链路详情
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QaChain"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /admin/gaps:
+    get:
+      tags: [admin-governance]
+      summary: 知识缺口清单
+      operationId: listAdminGaps
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [open, covered, ignored]
+        - name: withStats
+          in: query
+          schema:
+            type: boolean
+            default: false
+      responses:
+        "200":
+          description: 分页缺口
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GapPage"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /admin/gaps/{gapId}:
+    patch:
+      tags: [admin-governance]
+      summary: 缺口状态流转（认领 / 关闭 / 忽略）
+      operationId: patchAdminGap
+      parameters:
+        - name: gapId
+          in: path
+          required: true
+          schema:
+            type: string
+          examples:
+            sample:
+              value: gap-01
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GapPatch"
+      responses:
+        "200":
+          description: 已更新
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Gap"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  # ==========================================================
+  # admin：用户与身份治理
+  # ==========================================================
+  /admin/users:
+    get:
+      tags: [admin-governance]
+      summary: 用户列表
+      operationId: listAdminUsers
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+        - name: q
+          in: query
+          schema:
+            type: string
+        - name: role
+          in: query
+          schema:
+            type: string
+            enum: [admin, user]
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, disabled]
+      responses:
+        "200":
+          description: 分页用户
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminUserPage"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+    post:
+      tags: [admin-governance]
+      summary: 新建用户
+      description: 账号即工号，**不可改、不可复用**（architecture §2 ADR11）。
+      operationId: createAdminUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminUserCreate"
+      responses:
+        "201":
+          description: 已创建
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminUser"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  /admin/users/{userId}:
+    patch:
+      tags: [admin-governance]
+      summary: 改姓名 / 小组 / 角色 / 启停用
+      operationId: patchAdminUser
+      parameters:
+        - $ref: "#/components/parameters/UserId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AdminUserPatch"
+      responses:
+        "200":
+          description: 已更新
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminUser"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+    delete:
+      tags: [admin-governance]
+      summary: 删除用户（软删，历史日志保留归属）
+      description: 历史问答与统计不能因为删号而丢归属；实现为 `status=disabled` 并打删除标记。
+      operationId: deleteAdminUser
+      parameters:
+        - $ref: "#/components/parameters/UserId"
+      responses:
+        "204":
+          description: 已删除
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /admin/users/{userId}/reset-password:
+    post:
+      tags: [admin-governance]
+      summary: 重置口令（管理员操作）
+      operationId: resetAdminUserPassword
+      parameters:
+        - $ref: "#/components/parameters/UserId"
+      responses:
+        "200":
+          description: 已重置；`temporaryPassword` 只在为本地账号生成随机口令时返回
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [ok]
+                properties:
+                  ok:
+                    type: boolean
+                  temporaryPassword:
+                    type: string
+                    nullable: true
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /admin/identity/pending:
+    get:
+      tags: [admin-governance]
+      summary: 待开通工号清单（声明了但不在册）
+      description: |
+        来自 `sessions.claimed_engineer_id` 有值但 `engineer_id` 为空 的会话聚合（PRD §2.3）。
+        不自动开通（D9），只提示管理员处理；未识别会话照常服务。
+      operationId: listAdminPendingIdentity
+      responses:
+        "200":
+          description: 待开通工号（按出现次数倒序）
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/PendingAccount"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /admin/identity/pending/{account}/activate:
+    post:
+      tags: [admin-governance]
+      summary: 把声明工号开通为在册账号
+      description: 仅补齐账号记录，不改历史会话归属（历史仍按"当时未识别"统计，避免指标被追溯篡改）。
+      operationId: activateAdminPendingAccount
+      parameters:
+        - name: account
+          in: path
+          required: true
+          schema:
+            type: string
+          examples:
+            sample:
+              value: E2087
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PendingActivateRequest"
+      responses:
+        "201":
+          description: 已开通
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminUser"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+      x-pending-question: Q10
+
+  # ==========================================================
+  # admin：统计 / 周报 / 徽标
+  # ==========================================================
+  /admin/stats/overview:
+    get:
+      tags: [admin-stats]
+      summary: 驾驶舱概览（会话级口径）
+      description: |
+        与 `/admin/stats/north-star`（工程师级）**同看**：两者差值就是身份识别盲区
+        （PRD §5.7 双轨指标）。全部排除 `channel=admin_preview`。
+      operationId: getAdminStatsOverview
+      parameters:
+        - name: week
+          in: query
+          schema:
+            type: string
+          description: ISO 周，如 2026-W42；缺省当前周
+      responses:
+        "200":
+          description: 概览
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StatsOverview"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /admin/stats/north-star:
+    get:
+      tags: [admin-stats]
+      summary: 北极星（已解决标记率，工程师级）
+      description: |
+        工程级口径 `north.resolved / north.asked`；与 KPI 卡、趋势图当周点**必须是同一个值**
+        （前端零重算）。未识别会话不计入分子分母，但必须同时展示可识别率才能读。
+      operationId: getAdminNorthStar
+      parameters:
+        - name: week
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: 北极星与拆解
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NorthStar"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /admin/stats/engineers:
+    get:
+      tags: [admin-stats]
+      summary: 工程师维度排行
+      operationId: getAdminStatsEngineers
+      parameters:
+        - name: week
+          in: query
+          schema:
+            type: string
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+      responses:
+        "200":
+          description: 分页工程师统计
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EngineerStatPage"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /admin/stats/recognizability:
+    get:
+      tags: [admin-stats]
+      summary: 可识别率（阈值 80%）
+      description: |
+        可识别会话 / 全部会话。低于 `threshold` 时前端标琥珀并提示"北极星仅供参考"。
+        口径见 D9：阈值 0.8，不做自动补偿、不做自动开通。
+      operationId: getAdminStatsRecognizability
+      parameters:
+        - name: week
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: 可识别率与来源分布
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RecognizabilityStats"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /admin/reports/weekly:
+    get:
+      tags: [admin-stats]
+      summary: 周报（八节，与看板同源）
+      description: |
+        周报所有数字由服务端从**同一批聚合**生成，不得另算一套（原型映射表 §3）。
+        返回结构粒度见 Q5。
+      operationId: getAdminWeeklyReport
+      parameters:
+        - name: week
+          in: query
+          required: true
+          schema:
+            type: string
+          examples:
+            sample:
+              value: 2026-W42
+      responses:
+        "200":
+          description: 周报
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WeeklyReport"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+      x-pending-question: Q5
+
+  /admin/badges:
+    get:
+      tags: [admin-stats]
+      summary: 侧栏徽标（与对应列表页同一查询）
+      operationId: getAdminBadges
+      responses:
+        "200":
+          description: 徽标计数
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Badges"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  # ==========================================================
+  # admin：配置 / 主题 / 评测
+  # ==========================================================
+  /admin/config:
+    get:
+      tags: [admin-config]
+      summary: 读系统配置
+      description: |
+        分组与原型一致：llm / embedding / reranker / retrieval / widget / safety / security / preview / brand。
+        `widget` 组就是浮层文案与品牌的注入源（纪律 6）；`safety` 组是安全规则词表（纪律 3）。
+        密钥类字段只返回 `apiKeySet: true|false`，**不回传明文**。
+      operationId: getAdminConfig
+      responses:
+        "200":
+          description: 配置
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SystemConfig"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+    put:
+      tags: [admin-config]
+      summary: 保存配置（部分更新）
+      description: |
+        只提交改动过的组；写入 `app_config` 持久化。
+        **已接线**：llm、embedding（baseUrl+model，dim 不变）、retrieval、safety、widget、reranker；
+        下一次问答/拉取配置时生效。brand 由后台 layout 与登录页公开接口读取。
+        **未接线**：embedding 维度（需重建向量）；brand 名称/主色已接线，但 effect 仍按展示组处理。
+        响应中的 `effect` 会逐组说明"立即生效 / 需重启 / 仅前端展示 / 未接线"，不假装已生效。
+      operationId: putAdminConfig
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SystemConfigPatch"
+      responses:
+        "200":
+          description: 已保存
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SystemConfig"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  /admin/config/test-llm:
+    post:
+      tags: [admin-config]
+      summary: 测试 LLM 连通性
+      description: |
+        返回时延与模型名。注意推理模型（如 deepseek-flash）会先产出 reasoning_content，
+        `max_tokens` 过小会导致 content 为空 —— 实测 16 就为空，这是 D2 的结论。
+      operationId: postAdminTestLlm
+      responses:
+        "200":
+          description: 测试结果（含失败原因）
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LlmTestResult"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /admin/theme:
+    put:
+      tags: [admin-config]
+      summary: 保存品牌主题（系统名 / 产品名 / 主色 / Logo）
+      description: 主题同时影响后台与浮层注入的品牌色（widget spec §8）；与 `/admin/config` 的 brand 组关系见 Q8。
+      operationId: putAdminTheme
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ThemePatch"
+      responses:
+        "200":
+          description: 已保存
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Theme"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+      x-pending-question: Q8
+
+  /admin/evals:
+    get:
+      tags: [admin-config]
+      summary: 评测集与历史批次
+      description: |
+        评测与在线问答**复用同一套管线代码**（architecture §8 ADR8）；这里是列表，
+        跑批用 `/admin/evals/run`。用例含人工基线列与预期拒答/安全标记。
+      operationId: listAdminEvals
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+      responses:
+        "200":
+          description: 用例与批次
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EvalList"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /admin/evals/cases/template:
+    get:
+      tags: [admin-config]
+      summary: 下载评测用例导入模板
+      description: |
+        下载 CSV（带 UTF-8 BOM，Excel 可直接打开）或 .xlsx 模板。
+        列：问题（必填）/ 期望要点（用｜分隔）/ 设备型号 / 批次 / 设备名称 /
+        故障类型 / 期望拒答（是/否）/ 期望安全拦截（是/否）/ 人工基线 / 用例ID（可选）。
+      operationId: downloadAdminEvalCasesTemplate
+      parameters:
+        - name: format
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [csv, xlsx]
+            default: csv
+      responses:
+        "200":
+          description: 模板文件
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema:
+                type: string
+                format: binary
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /admin/evals/cases/import-file:
+    post:
+      tags: [admin-config]
+      summary: 导入 CSV / Excel 评测用例
+      description: |
+        上传 .csv 或 .xlsx（单文件 ≤2MB、≤2000 行），逐行校验「问题」必填、
+        拒答与安全拦截不能同时为是；任一行不合法整批拒绝（422），不静默跳过。
+        以「用例ID」为 source_id，未填时用「问题+型号+批次」哈希，重复导入只更新。
+      operationId: importAdminEvalCasesFile
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        "200":
+          description: 导入结果
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [imported, created, updated, caseTotal, source]
+                properties:
+                  imported:
+                    type: integer
+                  created:
+                    type: integer
+                  updated:
+                    type: integer
+                  caseTotal:
+                    type: integer
+                  source:
+                    type: string
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  /admin/evals/cases/reset:
+    post:
+      tags: [admin-config]
+      summary: 重置为默认评测用例集
+      description: |
+        清空 `eval_cases` 并写入仓库 `evals/cases.yaml` 的默认用例。
+        自行导入的用例会被删除；返回 removed（清掉的条数）与 imported（默认集条数）。
+      operationId: resetAdminEvalCases
+      responses:
+        "200":
+          description: 重置结果
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [reset, removed, imported, caseTotal, source]
+                properties:
+                  reset:
+                    type: boolean
+                  removed:
+                    type: integer
+                  imported:
+                    type: integer
+                  caseTotal:
+                    type: integer
+                  source:
+                    type: string
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+        "422":
+          $ref: "#/components/responses/ValidationError"
+
+  /admin/evals/run:
+    post:
+      tags: [admin-config]
+      summary: 触发一次评测（异步）
+      operationId: runAdminEval
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                caseIds:
+                  type: array
+                  items:
+                    type: string
+                  description: 缺省跑全量
+                category:
+                  type: string
+                  description: 只跑某类故障
+      responses:
+        "202":
+          description: 已排队，返回 runId 供轮询
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EvalRun"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /admin/evals/{runId}:
+    get:
+      tags: [admin-config]
+      summary: 评测批次详情（指标 + 逐例结果）
+      operationId: getAdminEvalRun
+      parameters:
+        - name: runId
+          in: path
+          required: true
+          schema:
+            type: string
+          examples:
+            sample:
+              value: run-3
+      responses:
+        "200":
+          description: 批次详情
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EvalRunDetail"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /admin/preview/ask:
+    post:
+      tags: [admin-governance]
+      summary: 管理员知识自测（只检索 + 证据门，不生成答案、不写日志）
+      description: |
+        治理动作后即时核对命中证据：返回结构化条件、证据门与命中证据（含相关度）。
+        `channel=admin_preview` 隔离在本接口体现为**不创建 session、不写 messages、不进任何指标**；
+        与 `/chat` 共用同一套检索/证据门代码（ADR8/ADR9）。
+      operationId: adminPreviewAsk
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PreviewAskRequest"
+      responses:
+        "200":
+          description: 抽测结果
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PreviewResult"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+# ============================================================
+# components
+# ============================================================
+components:
+
+  securitySchemes:
+    adminBearer:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT（HS256）
+      description: |
+        治理域凭证：登录后签发的 JWT（HS256），只对 `/admin/*` 有效；
+        与 widget sessionId **不可互换**（双链隔离）。密钥 `JWT_SECRET` 由环境注入。
+    widgetSession:
+      type: apiKey
+      in: header
+      name: X-Widget-Session
+      description: |
+        `POST /widget/session` 返回的 sessionId，只对 `/widget/*` 与 `/chat` 有效。
+        这不是认证凭证，不用于授权（PRD §2.3）。
+
+  parameters:
+    Page:
+      name: page
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+    PageSize:
+      name: pageSize
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+    DateFrom:
+      name: from
+      in: query
+      schema:
+        type: string
+        format: date
+      description: 起始日期（含）
+    DateTo:
+      name: to
+      in: query
+      schema:
+        type: string
+        format: date
+      description: 结束日期（含）
+    DocumentId:
+      name: documentId
+      in: path
+      required: true
+      schema:
+        type: string
+      examples:
+        sample:
+          value: doc-1
+    UserId:
+      name: userId
+      in: path
+      required: true
+      schema:
+        type: string
+      examples:
+        sample:
+          value: u-3
+
+  responses:
+    Unauthorized:
+      description: 未登录 / 凭证失效（治理域与工程师域凭证不可互换）
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          examples:
+            noToken:
+              value:
+                code: UNAUTHORIZED
+                message: 请先登录
+    Forbidden:
+      description: 当前账号不是管理员（治理域仅管理员可访问）
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          examples:
+            roleDenied:
+              value:
+                code: FORBIDDEN
+                message: 该功能仅管理员可见
+    NotFound:
+      description: 资源不存在（或不在当前调用者可见范围内）
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          examples:
+            notFound:
+              value:
+                code: NOT_FOUND
+                message: 资源不存在
+    Conflict:
+      description: 与当前状态冲突（重复账号、状态机非法迁移、域账号改密等）
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          examples:
+            duplicateAccount:
+              value:
+                code: CONFLICT
+                message: 该工号已存在
+    ValidationError:
+      description: 参数校验失败
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          examples:
+            badField:
+              value:
+                code: VALIDATION_ERROR
+                message: 参数不合法
+                detail:
+                  field: batch
+                  reason: 超出允许的取值范围
+    ServiceUnavailable:
+      description: 依赖不可用（数据库/模型服务）
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          examples:
+            dbDown:
+              value:
+                code: SERVICE_UNAVAILABLE
+                message: 服务暂不可用，请稍后重试
+
+  schemas:
+
+    # ---------- 通用 ----------
+    Error:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          description: 机器可读错误码（UNAUTHORIZED / NOT_FOUND / CONFLICT / VALIDATION_ERROR / SERVICE_UNAVAILABLE / ...）
+        message:
+          type: string
+          description: 可直接展示给用户的文案
+        detail:
+          type: object
+          additionalProperties: true
+          description: 附加上下文（字段级原因等），前端按需展示
+
+    SimpleOk:
+      type: object
+      required: [ok]
+      properties:
+        ok:
+          type: boolean
+          const: true
+
+    Pagination:
+      type: object
+      required: [page, pageSize, total]
+      properties:
+        page:
+          type: integer
+        pageSize:
+          type: integer
+        total:
+          type: integer
+          description: 与筛选条件同源的总条数
+
+    Health:
+      type: object
+      required: [status, app, version, baseline, env]
+      properties:
+        status:
+          type: string
+          enum: [ok]
+        app:
+          type: string
+        version:
+          type: string
+          description: 来自包元数据（pyproject.toml）；APP_VERSION 可覆盖
+        baseline:
+          type: string
+          description: 文档基线，如 v0.4
+        env:
+          type: string
+          enum: [dev, docker, prod]
+        envLabel:
+          type: string
+          description: |
+            给人看的环境名（本地环境 / 生产环境），来自 `APP_ENV_LABEL`；
+            只用于界面显示，判定逻辑永远用 `env`，不要用这个标签做分支。
+        buildSha:
+          type: string
+          description: 构建时注入的提交短 SHA；空字符串表示未知
+        buildTime:
+          type: string
+          description: 构建时间（UTC，ISO 8601）；空字符串表示未知
+
+    HealthDb:
+      type: object
+      required: [status, database]
+      properties:
+        status:
+          type: string
+          enum: [ok, degraded]
+        database:
+          type: string
+          enum: [up, down]
+
+    # ---------- widget：身份与会话 ----------
+    IdentitySource:
+      type: string
+      enum: [gateway_sso, host_injected, password_login, anonymous]
+      description: |
+        身份来源。前端上报值仅作提示，最终由后端按部署配置裁决；
+        `anonymous` 表示未识别（含"宿主没给 operatorId"的情况）。
+
+    EngineerIdentity:
+      type: object
+      required: [identified, source]
+      properties:
+        identified:
+          type: boolean
+          description: 在册校验是否通过；false 时问答照常进行，只影响统计归属
+        name:
+          type: string
+          nullable: true
+        account:
+          type: string
+          nullable: true
+          description: 在册工号（identified=false 时为空）
+        claimed:
+          type: string
+          nullable: true
+          description: 宿主声明的工号（可能未开通）；未识别但声明过时会出现
+        source:
+          $ref: "#/components/schemas/IdentitySource"
+        sourceLabel:
+          type: string
+          description: 展示用中文名（网关 SSO / 宿主注入 / 密码登录 / 未识别）
+
+    HostContext:
+      type: object
+      description: 宿主注入的设备上下文；缺哪个字段就留空，前端不补全
+      properties:
+        ticketNo:
+          type: string
+          nullable: true
+        deviceModel:
+          type: string
+          nullable: true
+        deviceName:
+          type: string
+          nullable: true
+        batch:
+          type: string
+          nullable: true
+
+    SessionRequest:
+      type: object
+      required: [identity]
+      properties:
+        identity:
+          type: object
+          required: [source]
+          properties:
+            source:
+              $ref: "#/components/schemas/IdentitySource"
+            claimedEngineerId:
+              type: string
+              nullable: true
+              description: 宿主声明的当前使用人工号（不是工单负责人；拿不到就不传）
+        hostContext:
+          $ref: "#/components/schemas/HostContext"
+        demoCode:
+          type: string
+          nullable: true
+          maxLength: 128
+          description: |
+            演示站入口码，由宿主页从 URL（`?code=`）读取后透传。
+            非演示环境忽略；演示环境缺失或无效时返回 401（DEMO_CODE_REQUIRED / DEMO_CODE_INVALID）。
+            注意：它是分流与归因工具，不是安全边界——成本由每日额度保证。
+
+    SessionResponse:
+      type: object
+      required: [sessionId, engineer]
+      properties:
+        sessionId:
+          type: string
+        engineer:
+          $ref: "#/components/schemas/EngineerIdentity"
+        hostContext:
+          $ref: "#/components/schemas/HostContext"
+
+    # ---------- widget：配置与证据 ----------
+    WidgetExample:
+      type: object
+      required: [q]
+      properties:
+        q:
+          type: string
+          description: 示例问题正文
+        tag:
+          type: string
+          description: 场景标签（按工单相关 / 通用排查 等，由 app 层配置）
+        scene:
+          type: string
+          description: 点击后走哪条演示场景（仅原型用，生产可忽略）
+
+    WidgetConfig:
+      type: object
+      required: [welcome, examples]
+      properties:
+        welcome:
+          type: string
+          description: 欢迎语；可含 {name} 占位，由前端用已识别姓名替换
+        examples:
+          type: array
+          items:
+            $ref: "#/components/schemas/WidgetExample"
+        handoffText:
+          type: string
+          description: 转人工文案（值班时间/热线提示）
+        brandColor:
+          type: string
+          description: 品牌主色（十六进制）；最终以服务端注入为准
+        features:
+          type: object
+          description: 能力开关（由部署配置决定，前端据此隐藏入口）
+          additionalProperties:
+            type: boolean
+        demo:
+          $ref: "#/components/schemas/WidgetDemoState"
+
+    WidgetDemoState:
+      type: object
+      description: 演示站状态；前端据此决定"需要入口码 / 已暂停 / 还剩几次"的提示
+      required: [enabled, paused, requiresCode]
+      properties:
+        enabled:
+          type: boolean
+          description: 演示是否开放（环境变量启用 且 后台总开关未关闭）
+        paused:
+          type: boolean
+          description: 是否被后台「演示总开关」暂停（与"没有入口码"是两回事）
+        requiresCode:
+          type: boolean
+          description: 建立会话是否需要入口码
+        sessionTurns:
+          type: integer
+          description: |
+            单次会话可提问轮次；前端只用来显示「本次会话还可提问 N 次」。
+            每日额度（码 / IP / 全局）不下发，属运营参数。
+        bookingUrl:
+          type: string
+          description: 预约 1:1 演示的地址
+        pausedTitle:
+          type: string
+          description: 暂停时的话术标题（由后端给，前端不写死）
+        pausedText:
+          type: string
+          description: 暂停时的话术正文
+
+    Citation:
+      type: object
+      required: [evidenceId, kind, title, loc]
+      properties:
+        evidenceId:
+          type: string
+          description: 证据单元 ID（如 M642 / T1187）；与步骤角标编号一一对应
+        kind:
+          type: string
+          enum: [manual, faq, table, ticket, drawing, excel, video]
+        icon:
+          type: string
+        title:
+          type: string
+          description: 来源标题，如《ZX-300 电梯维修手册》§6.4.2
+        loc:
+          type: string
+          description: 出处定位（章节号/页码/工作表行号/图号/时间戳）
+        batch:
+          type: string
+          nullable: true
+          description: 适用批次；跨批次并列展示时必填
+        score:
+          type: number
+          nullable: true
+          description: 检索相关性分值（仅后台详情用，前端不展示）
+
+    Evidence:
+      allOf:
+        - $ref: "#/components/schemas/Citation"
+        - type: object
+          required: [text]
+          properties:
+            text:
+              type: string
+              description: 证据单元全文（含章节标题行）
+            documentId:
+              type: string
+              nullable: true
+            pageFrom:
+              type: integer
+              nullable: true
+            pageTo:
+              type: integer
+              nullable: true
+            sectionNo:
+              type: string
+              nullable: true
+            meta:
+              type: object
+              additionalProperties: true
+              description: 格式相关元数据（图号、行号、时间戳等）
+
+    # ---------- chat：请求 ----------
+    ChatStructured:
+      type: object
+      description: 结构化查询条件；**未知字段一律留空**，禁止模型推测补全
+      properties:
+        symptom:
+          type: string
+          nullable: true
+        model:
+          type: string
+          nullable: true
+        batch:
+          type: string
+          nullable: true
+        code:
+          type: string
+          nullable: true
+        missing:
+          type: array
+          items:
+            type: string
+          description: 缺失且影响作答的关键字段（触发 ask 的依据）
+        batchOrigin:
+          type: string
+          nullable: true
+          enum: [host_context, user_confirmed, manual_version_inferred, null]
+          description: 字段来源；用户追问确认的批次必须标 user_confirmed
+
+    ChatRequest:
+      type: object
+      required: [sessionId, question]
+      properties:
+        sessionId:
+          type: string
+        question:
+          type: string
+          description: 工程师原话（不要求结构化）
+        context:
+          $ref: "#/components/schemas/HostContext"
+        clarify:
+          type: object
+          description: 追问卡选定后回传；携带此字段的请求不得再返回 ask（一轮为限）
+          required: [field, value]
+          properties:
+            field:
+              type: string
+              enum: [batch, model, alarm, symptom]
+            value:
+              type: string
+              description: 选项 value（如 B22+ / B21- / unknown）
+            label:
+              type: string
+              description: 选项展示文案，用于回显「你确认」
+        # 断线续传：D13 已定不做 resume —— 恢复后客户端重发同一 question（不重复用户气泡）
+
+    # ---------- chat：SSE 事件载荷 ----------
+    SseStructured:
+      type: object
+      required: [structured]
+      properties:
+        structured:
+          $ref: "#/components/schemas/ChatStructured"
+        filterNote:
+          type: string
+          nullable: true
+          description: 过滤说明（如「已按 ZX-300 / B23 批次 / 现行版手册过滤」）；全库检索时必须提示
+
+    SseConflict:
+      type: object
+      required: [conflict]
+      properties:
+        conflict:
+          type: string
+          description: 冲突说明：多版本互不通用，系统不替工程师选择
+        options:
+          type: array
+          items:
+            type: object
+            properties:
+              label:
+                type: string
+                description: 如「B22 及以后」
+              evidenceIds:
+                type: array
+                items:
+                  type: string
+
+    SseAsk:
+      type: object
+      required: [ask]
+      properties:
+        ask:
+          type: object
+          required: [field, title, body, options]
+          properties:
+            field:
+              type: string
+              description: 要补的字段
+            title:
+              type: string
+            body:
+              type: string
+            options:
+              type: array
+              minItems: 2
+              items:
+                type: object
+                required: [value, label]
+                properties:
+                  value:
+                    type: string
+                  label:
+                    type: string
+                  hint:
+                    type: string
+
+    SseSteps:
+      type: object
+      required: [index, text]
+      properties:
+        index:
+          type: integer
+          minimum: 1
+          description: 步骤序号，从 1 开始
+        text:
+          type: string
+          description: 该步正文（一帧一步，前端逐条呈现）
+        citations:
+          type: array
+          items:
+            type: string
+          description: 该步引用的 evidenceId；**每一步必须自带证据**，空数组表示该步只是过渡说明
+        done:
+          type: boolean
+          description: 最后一步时为 true（便于前端收尾，不替代 done 事件）
+
+    SseCitations:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          description: 引用清单，顺序 = 步骤中首次出现顺序，编号从 1 开始由前端派生
+          items:
+            $ref: "#/components/schemas/Citation"
+
+    SseDone:
+      type: object
+      required: [messageId]
+      properties:
+        messageId:
+          type: string
+          description: 本轮助手消息 id，反馈接口要用
+        citationsCount:
+          type: integer
+        refused:
+          type: boolean
+        elapsedMs:
+          type: integer
+          description: 服务端耗时（不含网络）；用于自测与日志
+
+    SseGap:
+      type: object
+      required: [gap]
+      properties:
+        gap:
+          type: object
+          required: [title, body]
+          properties:
+            title:
+              type: string
+            body:
+              type: string
+              description: 拒答说明；必须包含"已记入知识缺口清单"这类可解释信息
+            messageId:
+              type: string
+            missingFields:
+              type: array
+              items:
+                type: string
+
+    SseSafe:
+      type: object
+      required: [safe]
+      properties:
+        safe:
+          type: object
+          required: [title, body]
+          properties:
+            title:
+              type: string
+            body:
+              type: string
+              description: 只说明风险类别与联系厂家，**不含任何操作步骤**
+            citations:
+              type: array
+              items:
+                $ref: "#/components/schemas/Citation"
+            messageId:
+              type: string
+
+    SseRefused:
+      type: object
+      required: [refused]
+      properties:
+        refused:
+          type: object
+          required: [kind, title, body]
+          properties:
+            kind:
+              type: string
+              enum: [quota, paused]
+              description: |
+                拒答类别：quota = 演示额度用完（非证据不足，也不是安全拦截）；
+                paused = 后台「演示总开关」关闭，运营主动暂停（与额度无关）
+            reason:
+              type: string
+              nullable: true
+              enum: [session, code, ip, global]
+              description: 超限维度（供排障；前端不展示具体数值）
+            title:
+              type: string
+            body:
+              type: string
+            bookingUrl:
+              type: string
+              nullable: true
+              description: 预约 1:1 演示的地址
+            retryable:
+              type: boolean
+
+    SseError:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+            retryable:
+              type: boolean
+              description: 前端据此决定显示「重试」按钮（widget spec §4.8A）
+
+    # ---------- widget：反馈 / 转人工 ----------
+    FeedbackRequest:
+      type: object
+      required: [sessionId, messageId, type]
+      properties:
+        sessionId:
+          type: string
+        messageId:
+          type: string
+        type:
+          type: string
+          enum: [resolved, unresolved, saved]
+          description: 已解决 / 未解决 / 收藏；saved 的沉淀语义见 Q9
+        note:
+          type: string
+          description: 可选的补充说明
+
+    HandoffRequest:
+      type: object
+      required: [sessionId]
+      properties:
+        sessionId:
+          type: string
+        messageId:
+          type: string
+          nullable: true
+          description: 从哪条回答触发（拒答/安全卡内的按钮会带）
+
+    HandoffResponse:
+      type: object
+      required: [hotline, hours, context]
+      properties:
+        hotline:
+          type: string
+        hours:
+          type: string
+          description: 值班时间，如「工作日 8:30–18:00」
+        ticketNo:
+          type: string
+          nullable: true
+        context:
+          type: object
+          required: [deviceModel, batch, citedCount, handoffCount, rounds]
+          description: 与当前会话实际一致的上下文快照；无内容时用 none 占位，不编造条数
+          properties:
+            deviceModel:
+              type: string
+              nullable: true
+            batch:
+              type: string
+              nullable: true
+            citedCount:
+              type: integer
+              description: 已引用依据数（空会话为 0）
+            handoffCount:
+              type: integer
+              description: 本次会话累计转人工次数（含本次）
+            rounds:
+              type: integer
+              description: 已提问轮数（空会话为 0）
+        copyText:
+          type: string
+          description: 供一键复制的纯文本摘要
+
+    # ---------- admin：认证与用户 ----------
+    CaptchaChallenge:
+      type: object
+      required: [enabled]
+      properties:
+        enabled:
+          type: boolean
+          description: 未启用时前端不显示验证码输入框
+        captchaId:
+          type: string
+          description: 挑战 id，登录时回传
+        image:
+          type: string
+          description: SVG data URI（服务端生成的一次性图形码；不依赖外部资源）
+        expiresInSec:
+          type: integer
+          description: 挑战有效期（秒），默认 300
+
+    LoginRequest:
+      type: object
+      required: [account, password]
+      properties:
+        account:
+          type: string
+          description: 工号
+        password:
+          type: string
+          format: password
+        captchaId:
+          type: string
+        captchaCode:
+          type: string
+
+    LoginResponse:
+      type: object
+      required: [token, user, expiresAt]
+      properties:
+        token:
+          type: string
+          description: 治理域凭证（形式见 Q1）
+        expiresAt:
+          type: string
+          format: date-time
+        user:
+          $ref: "#/components/schemas/AdminUser"
+
+    AdminUser:
+      type: object
+      required: [id, account, name, role, status, credential]
+      properties:
+        id:
+          type: string
+        account:
+          type: string
+          description: 工号，不可改不可复用
+        name:
+          type: string
+        role:
+          type: string
+          enum: [admin, user]
+          description: 两级，不做 RBAC；user 只能进 /account
+        status:
+          type: string
+          enum: [active, disabled]
+        team:
+          type: string
+          nullable: true
+          description: 小组（售后 / 维保）
+        credential:
+          type: string
+          enum: [domain, local]
+        lastActive:
+          type: string
+          nullable: true
+          description: 最后活跃时间（展示用，可为日期字符串）
+        isSentinel:
+          type: boolean
+          description: 是否为 __unidentified__ 哨兵账号（不可登录、不可删）
+
+    AdminUserPage:
+      type: object
+      required: [items, pagination]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/AdminUser"
+        pagination:
+          $ref: "#/components/schemas/Pagination"
+
+    AdminUserCreate:
+      type: object
+      required: [account, name, role, credential]
+      properties:
+        account:
+          type: string
+        name:
+          type: string
+        role:
+          type: string
+          enum: [admin, user]
+        credential:
+          type: string
+          enum: [domain, local]
+        team:
+          type: string
+        password:
+          type: string
+          format: password
+          description: credential=local 时必填
+
+    AdminUserPatch:
+      type: object
+      properties:
+        name:
+          type: string
+        team:
+          type: string
+        role:
+          type: string
+          enum: [admin, user]
+        status:
+          type: string
+          enum: [active, disabled]
+
+    ChangePasswordRequest:
+      type: object
+      required: [oldPassword, newPassword]
+      properties:
+        oldPassword:
+          type: string
+          format: password
+        newPassword:
+          type: string
+          format: password
+
+    PendingAccount:
+      type: object
+      required: [account, count]
+      properties:
+        account:
+          type: string
+        count:
+          type: integer
+          description: 声明次数（会话数）
+        lastAt:
+          type: string
+          nullable: true
+
+    PendingActivateRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+        team:
+          type: string
+        role:
+          type: string
+          enum: [admin, user]
+          default: user
+        credential:
+          type: string
+          enum: [local, domain]
+          default: local
+        password:
+          type: string
+          format: password
+
+    # ---------- admin：知识源 ----------
+    DocumentCategory:
+      type: string
+      enum: [manual, faq, table, ticket, drawing]
+      description: 手册 / FAQ / 数据表格（参数·规格·台账）/ 工单 / 图纸目录
+
+    DocumentFormat:
+      type: string
+      enum: [pdf, docx, txt, md, xlsx, csv, ticketpkg, drawingindex]
+      description: |
+        文件格式；格式决定出处形态：PDF→页码、Excel→工作表/行号、工单包→工单号、
+        图纸索引→图号。这是"出处随格式走"的落地（architecture §5.1）。
+
+    DocumentStatus:
+      type: string
+      enum: [uploaded, parsing, parsed, failed, disabled]
+
+    DocumentLifecycle:
+      type: string
+      enum: [current, superseded, disabled, archived]
+      description: >-
+        现行版 / 已被替代 / 停用 / 已归档。停用=仍在列表但不进检索池（可随时启用）；
+        归档=默认不出现在列表且不进检索池，切片与原件保留、可恢复（`/restore`）。
+
+    Document:
+      type: object
+      required: [id, category, format, title, status, lifecycle]
+      properties:
+        id:
+          type: string
+        category:
+          $ref: "#/components/schemas/DocumentCategory"
+        format:
+          $ref: "#/components/schemas/DocumentFormat"
+        title:
+          type: string
+        docCode:
+          type: string
+          nullable: true
+          description: 文件编号（如 3CA0141-12）
+        model:
+          type: string
+          nullable: true
+          description: 型号/产品系列；未知留空
+        batch:
+          type: string
+          nullable: true
+          description: 批次；首批资料通常为空
+        version:
+          type: string
+          nullable: true
+          description: 版本号（如 v3.2 / Ver.3）
+        effective:
+          type: string
+          nullable: true
+          description: 生效日期
+        status:
+          $ref: "#/components/schemas/DocumentStatus"
+        lifecycle:
+          $ref: "#/components/schemas/DocumentLifecycle"
+        chunks:
+          type: integer
+          description: 证据单元数（切片数）
+        size:
+          type: string
+          nullable: true
+          description: 展示用体积字符串（如 18.6 MB）
+        updated:
+          type: string
+          nullable: true
+        uploader:
+          type: string
+          nullable: true
+        fileSha256:
+          type: string
+          nullable: true
+
+    DocumentDetail:
+      allOf:
+        - $ref: "#/components/schemas/Document"
+        - type: object
+          properties:
+            filePath:
+              type: string
+              nullable: true
+              description: 相对 data/original-docs/ 的路径（仅内部治理展示，读取原件请用文件接口）
+            hasOriginal:
+              type: boolean
+              description: 是否有可预览/下载的原件；工单沉淀生成的知识源为 false
+            parsedAt:
+              type: string
+              nullable: true
+            chunkStatusCounts:
+              type: object
+              additionalProperties:
+                type: integer
+              description: 切片按状态计数（active/disabled）
+            evidenceKinds:
+              type: array
+              items:
+                type: string
+              description: 该文档产生的出处类型（页码/章节/行号/图号）
+            supersedes:
+              type: string
+              nullable: true
+              description: 被本文档替代的旧版 id
+
+    DocumentPreview:
+      type: object
+      required: [kind, format]
+      properties:
+        kind:
+          type: string
+          enum: [pdf, text, unsupported]
+          description: pdf=交给浏览器阅读器；text=直接渲染；unsupported=当前格式暂不支持
+        format:
+          type: string
+        text:
+          type: string
+          description: kind=text 时的原文内容（最多 1MB，超出截断）
+        truncated:
+          type: boolean
+        message:
+          type: string
+          description: kind=unsupported 时给使用者的说明
+        sizeBytes:
+          type: integer
+          nullable: true
+        pageWidth:
+          type: number
+          nullable: true
+          description: PDF 首页宽度（pt），用于全屏时计算「适应页面」的缩放比例
+        pageHeight:
+          type: number
+          nullable: true
+          description: PDF 首页高度（pt），用于全屏时计算「适应页面」的缩放比例
+
+    DocumentPatch:
+      type: object
+      properties:
+        title:
+          type: string
+        docCode:
+          type: string
+        model:
+          type: string
+          nullable: true
+        batch:
+          type: string
+          nullable: true
+          description: >-
+            文档级批次：解析时作为切片默认批次。FAQ 行级批次优先，本字段只更新
+            「行内没标过批次」的切片（`meta_json.batchFromRow` 为 true 的不动）。
+        version:
+          type: string
+          nullable: true
+        effective:
+          type: string
+          nullable: true
+        lifecycle:
+          $ref: "#/components/schemas/DocumentLifecycle"
+
+    DocumentPage:
+      type: object
+      required: [items, pagination]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Document"
+        pagination:
+          $ref: "#/components/schemas/Pagination"
+        stats:
+          type: object
+          properties:
+            total:
+              type: integer
+            byCategory:
+              type: object
+              additionalProperties:
+                type: integer
+            totalChunks:
+              type: integer
+            currentVersionCount:
+              type: integer
+            chunksAdded7d:
+              type: integer
+              description: 近 7 天（滚动窗口）新增的证据单元数；用于统计卡「近 7 天新增」
+
+    DocumentUploadAccepted:
+      type: object
+      required: [documentId, status, jobId]
+      properties:
+        documentId:
+          type: string
+        status:
+          $ref: "#/components/schemas/DocumentStatus"
+        jobId:
+          type: string
+
+    Chunk:
+      type: object
+      required: [id, evidenceId, text, status]
+      properties:
+        id:
+          type: string
+        evidenceId:
+          type: string
+        loc:
+          type: string
+          nullable: true
+          description: 出处定位（章节号 / 页码 / 行号 / 图号）
+        page:
+          type: string
+          nullable: true
+          description: 展示用页码串（如 P128 / 第 12 行 / 图号 ZX300-JX-014）
+        provKind:
+          type: string
+          nullable: true
+          description: 出处类型说明（所属章节 / 页码、工作表 / 行号、图号 / 所在章节）
+        text:
+          type: string
+        status:
+          type: string
+          enum: [active, disabled]
+        model:
+          type: string
+          nullable: true
+        batch:
+          type: string
+          nullable: true
+        version:
+          type: string
+          nullable: true
+        sectionNo:
+          type: string
+          nullable: true
+        tokens:
+          type: integer
+          nullable: true
+          description: 分词后 token 数（排查召回异常用）
+
+    ChunkPatch:
+      type: object
+      properties:
+        text:
+          type: string
+        status:
+          type: string
+          enum: [active, disabled]
+        sectionNo:
+          type: string
+        model:
+          type: string
+        batch:
+          type: string
+        version:
+          type: string
+
+    ChunkPage:
+      type: object
+      required: [items, pagination]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Chunk"
+        pagination:
+          $ref: "#/components/schemas/Pagination"
+
+    Job:
+      type: object
+      required: [id, docTitle, status, stage]
+      properties:
+        id:
+          type: string
+        docId:
+          type: string
+          nullable: true
+        docTitle:
+          type: string
+        category:
+          $ref: "#/components/schemas/DocumentCategory"
+        format:
+          $ref: "#/components/schemas/DocumentFormat"
+        stage:
+          type: string
+          description: 阶段（解析 / 切片 / 向量化 / 完成）
+        status:
+          type: string
+          enum: [queued, running, done, failed, cancelled]
+        progress:
+          type: integer
+          minimum: 0
+          maximum: 100
+        cancelRequested:
+          type: boolean
+          description: 运行中任务已收到取消请求，worker 将在阶段边界退出（暂不中断外部调用）
+        startedAt:
+          type: string
+          nullable: true
+        finishedAt:
+          type: string
+          nullable: true
+        note:
+          type: string
+          nullable: true
+          description: 失败原因或进度说明
+        attempts:
+          type: integer
+
+    JobPage:
+      type: object
+      required: [items, pagination]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Job"
+        pagination:
+          $ref: "#/components/schemas/Pagination"
+        stats:
+          type: object
+          properties:
+            counts:
+              type: object
+              properties:
+                queued:
+                  type: integer
+                running:
+                  type: integer
+                done:
+                  type: integer
+                failed:
+                  type: integer
+
+    # ---------- admin：沉淀 / 日志 / 缺口 ----------
+    Settlement:
+      type: object
+      required: [id, channel, status, title]
+      properties:
+        id:
+          type: string
+        channel:
+          type: string
+          enum: [ticket, favorite, manual]
+        status:
+          type: string
+          enum: [pending, confirmed, rejected]
+        title:
+          type: string
+        source:
+          type: string
+          description: 来源描述（工单号 / 会话 / 文档）
+        model:
+          type: string
+          nullable: true
+        batch:
+          type: string
+          nullable: true
+        version:
+          type: string
+          nullable: true
+        submittedBy:
+          type: string
+          nullable: true
+        submittedAt:
+          type: string
+          nullable: true
+        loc:
+          type: string
+          nullable: true
+          description: 确认入库后切片将使用的出处定位
+        text:
+          type: string
+          description: 待确认的沉淀正文
+        context:
+          type: array
+          description: 上下文键值对（设备、故障、处置要点）
+          items:
+            type: object
+            required: [k, v]
+            properties:
+              k:
+                type: string
+              v:
+                type: string
+        reviewLog:
+          type: array
+          items:
+            type: object
+            properties:
+              at:
+                type: string
+              by:
+                type: string
+              action:
+                type: string
+                enum: [confirmed, rejected, edited]
+              note:
+                type: string
+
+    SettlementFromTicketRequest:
+      type: object
+      required: [sessionId]
+      properties:
+        sessionId:
+          type: string
+          description: 提供工单锚点的会话（ses-12 / 12 都接受）；聚合按工单号跨会话
+        note:
+          type: string
+          nullable: true
+          description: 触发备注，写入候选上下文供复盘（不改变审核状态机）
+
+    SettlementFromTicketResult:
+      allOf:
+        - $ref: "#/components/schemas/Settlement"
+        - type: object
+          required: [created]
+          properties:
+            created:
+              type: boolean
+              description: true=本次新建；false=幂等命中既有候选
+
+    SettlementConfirmation:
+      allOf:
+        - $ref: "#/components/schemas/Settlement"
+        - type: object
+          required: [vectorization]
+          properties:
+            vectorization:
+              type: object
+              description: |
+                确认时的补向量结果：ready=已可 Dense+BM25 命中；failed=向量服务失败/维度不一致，
+                切片保留 embedding NULL，仅 BM25 可命中；skipped=未配置向量客户端。
+              required: [status]
+              properties:
+                status:
+                  type: string
+                  enum: [ready, failed, skipped]
+                dim:
+                  type: integer
+                  nullable: true
+                message:
+                  type: string
+                  nullable: true
+
+    SettlementDecision:
+      type: object
+      properties:
+        note:
+          type: string
+          description: 确认/拒绝理由（留痕）
+        text:
+          type: string
+          description: 确认前允许改正文；不给则用原正文
+        loc:
+          type: string
+          description: 确认前可修正出处定位
+
+    SettlementPage:
+      type: object
+      required: [items, pagination]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Settlement"
+        pagination:
+          $ref: "#/components/schemas/Pagination"
+        stats:
+          type: object
+          properties:
+            pending:
+              type: integer
+            confirmed:
+              type: integer
+            rejected:
+              type: integer
+
+    QaMessage:
+      type: object
+      required: [id, question, outcome, identity]
+      properties:
+        id:
+          type: string
+        time:
+          type: string
+        sessionId:
+          type: string
+          nullable: true
+        user:
+          type: string
+          nullable: true
+          description: 展示用姓名；未识别显示「未识别」
+        ticket:
+          type: string
+          nullable: true
+        identity:
+          type: object
+          required: [source]
+          properties:
+            source:
+              $ref: "#/components/schemas/IdentitySource"
+            claimed:
+              type: string
+              nullable: true
+            engineer:
+              type: string
+              nullable: true
+              description: 在册工号；未识别为空
+        question:
+          type: string
+        structured:
+          $ref: "#/components/schemas/ChatStructured"
+        hits:
+          type: array
+          items:
+            type: object
+            properties:
+              evidenceId:
+                type: string
+              loc:
+                type: string
+              kind:
+                type: string
+              score:
+                type: number
+        citations:
+          type: integer
+          description: 最终引用条数
+        stripped:
+          type: array
+          description: 被程序剥离的非法引用（违反纪律 1 时的审计线索）
+          items:
+            type: object
+            properties:
+              evidenceId:
+                type: string
+              reason:
+                type: string
+        outcome:
+          type: string
+          enum: [answered, gap, safe, error]
+        resolved:
+          type: string
+          nullable: true
+          enum: [resolved, unresolved, null]
+        resolvedInSec:
+          type: integer
+          nullable: true
+          description: 定位时长（首次提问 → 已解决标记）
+        handoff:
+          type: boolean
+          description: 本会话是否转人工
+        channel:
+          type: string
+          enum: [widget, admin_preview]
+
+    QaMessagePage:
+      type: object
+      required: [items, pagination]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/QaMessage"
+        pagination:
+          $ref: "#/components/schemas/Pagination"
+        stats:
+          type: object
+          properties:
+            rounds:
+              type: integer
+              description: 本页轮数
+            identifiableRounds:
+              type: integer
+              description: 本页可识别轮数
+
+    QaChain:
+      type: object
+      required: [message, rounds]
+      properties:
+        message:
+          $ref: "#/components/schemas/QaMessage"
+        rounds:
+          type: array
+          description: 同一会话的多轮，按时间升序
+          items:
+            type: object
+            properties:
+              question:
+                type: string
+              answerSummary:
+                type: string
+              outcome:
+                type: string
+                enum: [answered, gap, safe, error]
+              gateReason:
+                type: string
+                nullable: true
+                enum: [gap, safe, citation_stripped, null]
+              citations:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Citation"
+              stripped:
+                type: array
+                items:
+                  type: string
+              askFields:
+                type: array
+                description: 本轮是否触发追问及字段
+                items:
+                  type: string
+              elapsedMs:
+                type: integer
+
+    SavedItem:
+      type: object
+      required: [id, question, messageId]
+      properties:
+        id:
+          type: string
+        question:
+          type: string
+        messageId:
+          type: string
+        savedAt:
+          type: string
+        citations:
+          type: array
+          items:
+            $ref: "#/components/schemas/Citation"
+
+    SavedItemPage:
+      type: object
+      required: [items, pagination]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/SavedItem"
+        pagination:
+          $ref: "#/components/schemas/Pagination"
+
+    Gap:
+      type: object
+      required: [id, model, symptom, count, status]
+      properties:
+        id:
+          type: string
+        model:
+          type: string
+          nullable: true
+        symptom:
+          type: string
+        count:
+          type: integer
+          description: 被问到次数
+        firstAt:
+          type: string
+          nullable: true
+        lastAt:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [open, covered, ignored]
+        coveredBy:
+          type: string
+          nullable: true
+          description: 由哪份资料/沉淀覆盖（形态见 Q6）
+        relatedMessages:
+          type: array
+          items:
+            type: string
+
+    GapPatch:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [open, covered, ignored]
+        coveredBy:
+          type: string
+        note:
+          type: string
+
+    GapPage:
+      type: object
+      required: [items, pagination]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Gap"
+        pagination:
+          $ref: "#/components/schemas/Pagination"
+        stats:
+          type: object
+          properties:
+            uncovered:
+              type: integer
+            covered:
+              type: integer
+
+    # ---------- admin：知识自测 ----------
+    PreviewAskRequest:
+      type: object
+      required: [question]
+      properties:
+        question:
+          type: string
+          minLength: 1
+          maxLength: 200
+        model:
+          type: string
+          nullable: true
+          description: 可留空，留空走全库检索（系统不猜，纪律 2）
+        batch:
+          type: string
+          nullable: true
+
+    PreviewHit:
+      type: object
+      required: [evidenceId, score]
+      properties:
+        evidenceId:
+          type: string
+        docId:
+          type: integer
+          nullable: true
+        loc:
+          type: string
+          nullable: true
+        title:
+          type: string
+          nullable: true
+        score:
+          type: number
+          nullable: true
+        text:
+          type: string
+          description: 切片正文摘要（用于抽测面板就地核对）
+        batch:
+          type: string
+          nullable: true
+        version:
+          type: string
+          nullable: true
+        model:
+          type: string
+          nullable: true
+        sources:
+          type: array
+          items:
+            type: string
+          description: 召回路径 dense / bm25 / both
+
+    PreviewResult:
+      type: object
+      required: [kind, structured, hits]
+      properties:
+        kind:
+          type: string
+          enum: [answer, gap, safe]
+        structured:
+          $ref: "#/components/schemas/ChatStructured"
+        filterNote:
+          type: string
+          nullable: true
+        safetyWord:
+          type: string
+          nullable: true
+        title:
+          type: string
+          nullable: true
+        body:
+          type: string
+          nullable: true
+        gate:
+          type: object
+          nullable: true
+          properties:
+            passed:
+              type: boolean
+            hits:
+              type: integer
+            topScore:
+              type: number
+              nullable: true
+            coverage:
+              type: number
+            missingTerms:
+              type: array
+              items:
+                type: string
+        hits:
+          type: array
+          items:
+            $ref: "#/components/schemas/PreviewHit"
+
+    # ---------- admin：统计 ----------
+    Kpi:
+      type: object
+      required: [questions, resolveRate, refusalRate, handoffRate]
+      properties:
+        questions:
+          type: integer
+        resolveRate:
+          type: number
+          description: 0~1
+        refusalRate:
+          type: number
+        handoffRate:
+          type: number
+
+    StatsOverview:
+      type: object
+      required: [week, kpi, sessionResolveRate, recognizableRate]
+      properties:
+        week:
+          type: string
+        kpi:
+          $ref: "#/components/schemas/Kpi"
+        prevKpi:
+          $ref: "#/components/schemas/Kpi"
+        sessionResolveRate:
+          type: number
+          description: 会话级已解决率（含未识别）；与北极星同看
+        recognizableRate:
+          type: number
+        badCases:
+          type: integer
+        weekly:
+          type: array
+          description: 趋势点；最后一个点必须等于当前 KPI
+          items:
+            type: object
+            properties:
+              week:
+                type: string
+              questions:
+                type: integer
+              resolveRate:
+                type: number
+        topQuestions:
+          type: array
+          items:
+            type: object
+            properties:
+              q:
+                type: string
+              count:
+                type: integer
+              model:
+                type: string
+        firstFixBuckets:
+          type: array
+          items:
+            type: object
+            properties:
+              label:
+                type: string
+              count:
+                type: integer
+
+    NorthStar:
+      type: object
+      required: [week, north, resolveRate]
+      properties:
+        week:
+          type: string
+        north:
+          type: object
+          required: [asked, resolved]
+          properties:
+            asked:
+              type: integer
+              description: 分母：可识别工程师的提问轮数
+            resolved:
+              type: integer
+              description: 分子：其中标记已解决的轮数
+        resolveRate:
+          type: number
+          description: north.resolved / north.asked；当周唯一值，前后端不得各算
+        prevNorth:
+          type: object
+          properties:
+            asked:
+              type: integer
+            resolved:
+              type: integer
+        sessionResolveRate:
+          type: number
+        recognizableRate:
+          type: number
+        threshold:
+          type: number
+          description: 可识别率阈值（0.8）
+        note:
+          type: string
+          description: 低于阈值时必须显示的提示文案
+
+    EngineerStat:
+      type: object
+      required: [name, account, questions, resolveRate]
+      properties:
+        name:
+          type: string
+        account:
+          type: string
+        questions:
+          type: integer
+        resolveRate:
+          type: number
+        lastActive:
+          type: string
+          nullable: true
+        state:
+          type: string
+          enum: [active, idle, inactive]
+
+    EngineerStatPage:
+      type: object
+      required: [items, pagination]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/EngineerStat"
+        pagination:
+          $ref: "#/components/schemas/Pagination"
+
+    RecognizabilityStats:
+      type: object
+      required: [week, recognizableRate, threshold, totalSessions, identifiableSessions]
+      properties:
+        week:
+          type: string
+        recognizableRate:
+          type: number
+        threshold:
+          type: number
+        totalSessions:
+          type: integer
+        identifiableSessions:
+          type: integer
+        bySource:
+          type: array
+          items:
+            type: object
+            properties:
+              source:
+                $ref: "#/components/schemas/IdentitySource"
+              sessions:
+                type: integer
+              label:
+                type: string
+
+    WeeklyReportMetric:
+      type: object
+      required: [label, value]
+      properties:
+        label:
+          type: string
+        value:
+          oneOf:
+            - type: string
+            - type: number
+            - type: integer
+        unit:
+          type: string
+          nullable: true
+        delta:
+          type: number
+          nullable: true
+          description: 与上周对比（可为负）
+        source:
+          type: string
+          description: 数据来源接口，保证"与看板同源"可追溯
+
+    WeeklyReportSection:
+      type: object
+      required: [title, metrics]
+      properties:
+        title:
+          type: string
+        body:
+          type: string
+          nullable: true
+          description: 该节文字说明（结论与建议）
+        metrics:
+          type: array
+          items:
+            $ref: "#/components/schemas/WeeklyReportMetric"
+
+    WeeklyReport:
+      type: object
+      required: [week, sections]
+      properties:
+        week:
+          type: string
+        range:
+          type: string
+          description: 展示用区间（如 2026-W37 ~ W41）
+        sections:
+          type: array
+          description: 八节：概览 / 北极星 / 可识别率 / 拒答分析 / 知识缺口 / 沉淀 / 工程师 / 下周计划
+          items:
+            $ref: "#/components/schemas/WeeklyReportSection"
+        exportedAt:
+          type: string
+          nullable: true
+        format:
+          type: string
+          description: 导出格式（Markdown / PDF），[待确认]
+
+    Badges:
+      type: object
+      properties:
+        pendingSettlements:
+          type: integer
+        jobsActive:
+          type: integer
+        jobsFailed:
+          type: integer
+        openGaps:
+          type: integer
+
+    # ---------- admin：配置 / 主题 / 评测 ----------
+    LlmConfig:
+      type: object
+      required: [baseUrl, model]
+      properties:
+        baseUrl:
+          type: string
+        model:
+          type: string
+        timeoutSec:
+          type: integer
+        apiKeySet:
+          type: boolean
+          description: 只回传是否已配置，绝不回传明文
+
+    EmbeddingConfig:
+      type: object
+      required: [model, dim]
+      properties:
+        baseUrl:
+          type: string
+          nullable: true
+        model:
+          type: string
+        dim:
+          type: integer
+        provider:
+          type: string
+          enum: [local, remote]
+
+    RerankerConfig:
+      type: object
+      required: [model]
+      properties:
+        baseUrl:
+          type: string
+          nullable: true
+        model:
+          type: string
+        provider:
+          type: string
+          enum: [none, tencent, llama_cpp]
+          description: |
+            none=只用 RRF 融合；tencent=腾讯云 AI Search /v1/rerank；
+            llama_cpp=本地 llama-server /v1/rerank（预留）。后台以「启用重排」开关控制，
+            开启时保留既有非 none 值，关闭时写回 none；失败/超时自动回退 RRF。
+
+    RetrievalConfig:
+      type: object
+      required: [topK, evidenceThreshold]
+      properties:
+        recallPerRoute:
+          type: integer
+          description: 单路召回条数（向量 / BM25 各一路）
+        fusion:
+          type: string
+          description: 融合方式，默认 RRF
+        topK:
+          type: integer
+          description: 最终进入生成的条数
+        evidenceThreshold:
+          type: number
+          description: 证据门阈值（低于则拒答）
+
+    WidgetSettings:
+      type: object
+      required: [welcome, samples, handoffText, brandColor]
+      properties:
+        welcome:
+          type: string
+        samples:
+          type: array
+          items:
+            type: string
+        handoffText:
+          type: string
+        brandColor:
+          type: string
+
+    SafetySettings:
+      type: object
+      required: [words]
+      properties:
+        words:
+          type: array
+          description: 安全规则词表（带电检修、短接安全回路、救援、撬门、盘车等）；命中即拦截
+          items:
+            type: string
+
+    SecuritySettings:
+      type: object
+      required: [captchaEnabled]
+      properties:
+        captchaEnabled:
+          type: boolean
+
+    PreviewSettings:
+      type: object
+      required: [enabled]
+      properties:
+        enabled:
+          type: boolean
+          description: 管理自测开关；开启后的会话 channel=admin_preview，不进指标
+
+    BrandSettings:
+      type: object
+      required: [systemName, orgName, primaryColor]
+      properties:
+        systemName:
+          type: string
+        productName:
+          type: string
+        orgName:
+          type: string
+        primaryColor:
+          type: string
+        logo:
+          type: string
+          maxLength: 200000
+          description: |
+            内置标识（default）或自定义标识：SVG / PNG（≤100KB）的 data URL，
+            由系统配置页在浏览器内校验后随品牌配置保存
+        logoFileName:
+          type: string
+
+    DemoSettings:
+      type: object
+      required: [enabled]
+      properties:
+        enabled:
+          type: boolean
+          description: |
+            演示总开关。false = 暂停：即使带入口码也不建立会话、不产生回答，
+            浮层提示「这个演示需要从官网入口进入」。
+            只收窄不放大——`DEMO_ENABLED=false` 的部署（本机开发）不会被它打开。
+
+    SystemConfig:
+      type: object
+      required: [llm, embedding, reranker, retrieval, widget, safety, security, preview, demo, brand]
+      properties:
+        llm:
+          $ref: "#/components/schemas/LlmConfig"
+        embedding:
+          $ref: "#/components/schemas/EmbeddingConfig"
+        reranker:
+          $ref: "#/components/schemas/RerankerConfig"
+        retrieval:
+          $ref: "#/components/schemas/RetrievalConfig"
+        widget:
+          $ref: "#/components/schemas/WidgetSettings"
+        safety:
+          $ref: "#/components/schemas/SafetySettings"
+        security:
+          $ref: "#/components/schemas/SecuritySettings"
+        preview:
+          $ref: "#/components/schemas/PreviewSettings"
+        demo:
+          $ref: "#/components/schemas/DemoSettings"
+        brand:
+          $ref: "#/components/schemas/BrandSettings"
+
+    SystemConfigPatch:
+      type: object
+      description: 只提交改动过的组；未出现的组保持原值
+      properties:
+        llm:
+          $ref: "#/components/schemas/LlmConfig"
+        embedding:
+          $ref: "#/components/schemas/EmbeddingConfig"
+        reranker:
+          $ref: "#/components/schemas/RerankerConfig"
+        retrieval:
+          $ref: "#/components/schemas/RetrievalConfig"
+        widget:
+          $ref: "#/components/schemas/WidgetSettings"
+        safety:
+          $ref: "#/components/schemas/SafetySettings"
+        security:
+          $ref: "#/components/schemas/SecuritySettings"
+        preview:
+          $ref: "#/components/schemas/PreviewSettings"
+        demo:
+          $ref: "#/components/schemas/DemoSettings"
+        brand:
+          $ref: "#/components/schemas/BrandSettings"
+
+    Theme:
+      type: object
+      required: [systemName, productName, orgName, primaryColor]
+      properties:
+        systemName:
+          type: string
+        productName:
+          type: string
+        orgName:
+          type: string
+        primaryColor:
+          type: string
+        logo:
+          type: string
+          maxLength: 200000
+          description: 内置标识（default）或自定义 SVG / PNG（≤100KB）的 data URL
+        logoFileName:
+          type: string
+
+    ThemePatch:
+      type: object
+      properties:
+        systemName:
+          type: string
+        productName:
+          type: string
+        orgName:
+          type: string
+        primaryColor:
+          type: string
+        logo:
+          type: string
+          maxLength: 200000
+          description: 内置标识（default）或自定义 SVG / PNG（≤100KB）的 data URL
+        logoFileName:
+          type: string
+
+    LlmTestResult:
+      type: object
+      required: [ok]
+      properties:
+        ok:
+          type: boolean
+        model:
+          type: string
+          nullable: true
+        latencyMs:
+          type: integer
+          nullable: true
+        firstTokenMs:
+          type: integer
+          nullable: true
+          description: 首个流式事件到达时间（SSE 首事件实测 471ms，D2）
+        error:
+          type: string
+          nullable: true
+          description: 失败原因（鉴权/超时/模型不存在/返回空 content 等）
+
+    EvalCase:
+      type: object
+      required: [id, question]
+      properties:
+        id:
+          type: string
+        question:
+          type: string
+        category:
+          type: string
+          nullable: true
+          description: 故障类别（报警码 / 异响 / 温升 / 精度偏差）
+        model:
+          type: string
+          nullable: true
+        pairId:
+          type: string
+          nullable: true
+          description: 跨型号/版本用例对 id
+        pairLabel:
+          type: string
+          nullable: true
+        hasBaseline:
+          type: boolean
+          description: 是否已有人工基线答案
+
+    EvalMetrics:
+      type: object
+      properties:
+        citationVerifiable:
+          type: number
+          description: 引用可核验率（[待确认] 判定细则 Q7）
+        underRefusal:
+          type: number
+          description: 应答未答率（漏拒）
+        overRefusal:
+          type: number
+          description: 不应答而拒率（过拒）
+        keyPointHit:
+          type: number
+          description: 要点命中率
+        batchConfusion:
+          type: number
+          description: 批次/版本混淆率（多版本坑）
+
+    EvalBaseline:
+      type: object
+      description: 人工基线列（上线前实测）
+      properties:
+        note:
+          type: string
+        citationVerifiable:
+          type: number
+        keyPointHit:
+          type: number
+        avgMinutes:
+          type: number
+
+    EvalRun:
+      type: object
+      required: [id, status]
+      properties:
+        id:
+          type: string
+        startedAt:
+          type: string
+          nullable: true
+        finishedAt:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [running, done, failed]
+        caseCount:
+          type: integer
+        modelSnapshot:
+          type: string
+          description: 本次运行用的模型快照（如 deepseek-flash · bge-m3 · bge-reranker-v2-m3）
+        metrics:
+          $ref: "#/components/schemas/EvalMetrics"
+        baseline:
+          $ref: "#/components/schemas/EvalBaseline"
+
+    EvalRunDetail:
+      allOf:
+        - $ref: "#/components/schemas/EvalRun"
+        - type: object
+          properties:
+            cases:
+              type: array
+              description: 逐例结果
+              items:
+                type: object
+                properties:
+                  caseId:
+                    type: string
+                  question:
+                    type: string
+                  answered:
+                    type: boolean
+                  refused:
+                    type: boolean
+                  refusalKind:
+                    type: string
+                    nullable: true
+                    enum: [gap, safe, null]
+                  citations:
+                    type: integer
+                  citationValid:
+                    type: boolean
+                    nullable: true
+                  batchConfused:
+                    type: boolean
+                  keyPointHit:
+                    type: boolean
+                    nullable: true
+                  elapsedMs:
+                    type: integer
+
+    EvalList:
+      type: object
+      required: [cases, runs]
+      properties:
+        cases:
+          type: array
+          items:
+            $ref: "#/components/schemas/EvalCase"
+        runs:
+          type: array
+          items:
+            $ref: "#/components/schemas/EvalRun"
+        caseTotal:
+          type: integer
+        caseSource:
+          type: string
+          enum: [table, yaml]
+          description: table=数据库 eval_cases；yaml=表为空，回落仓库 evals/cases.yaml

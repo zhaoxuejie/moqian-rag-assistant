@@ -1,0 +1,60 @@
+[project]
+name = "moqian-service-assistant"
+# 版本号唯一来源。
+# 包元数据缺失时应用会显示 0.0.0-dev。
+version = "1.3.0"
+description = "制造业设备售后知识助手（开源版）"
+requires-python = ">=3.11"
+dependencies = [
+  # Web
+  "fastapi>=0.115",
+  "uvicorn[standard]>=0.30",
+  "pydantic-settings>=2.4",
+  # DB（P0 用同步 SQLAlchemy + psycopg；向量走 pgvector 原生列）
+  "sqlalchemy>=2.0",
+  "psycopg[binary]>=3.2",
+  # 文档解析（S2）
+  "pymupdf>=1.24",
+  "openpyxl>=3.1",
+  "python-docx>=1.1",
+  # 检索（S3）
+  "jieba>=0.42",
+  # HTTP 客户端（LLM / 评测）
+  "httpx>=0.27",
+  # 治理域凭证（D12：JWT）
+  "pyjwt>=2.8",
+  # 后台文件上传（multipart/form-data）
+  "python-multipart>=0.0.9",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0", "ruff>=0.6", "pyyaml>=6.0", "openapi-spec-validator>=0.7"]
+# 本机 embedding / 重排（D10）：体积大，单独装
+local-models = ["sentence-transformers>=3.0", "FlagEmbedding>=1.2"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["app*", "modules*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+extend-exclude = [".venv", "data", ".tmp-probe", "pip-build-env-*", "pip-install-*"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.ruff.lint.per-file-ignores]
+# FastAPI 依赖注入的标准写法就是在参数默认值里调 Depends()/Header()
+"app/routers/*.py" = ["B008"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+# 仓库根进 sys.path：`pytest`（CI 的调用方式）与 `python -m pytest` 行为一致，
+# 也保证 import evals/ 可用——本地靠 editable 安装的 .pth 恰好掩盖了这一点，
+# 裸 pytest 在 CI 会报 ModuleNotFoundError: No module named 'evals'（D-033）。
+pythonpath = ["."]

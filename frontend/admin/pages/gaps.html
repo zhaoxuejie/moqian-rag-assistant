@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>知识缺口 · 售后知识助手管理台</title>
+<link rel="icon" type="image/svg+xml" href="../favicon.svg" />
+<script src="../controllers/theme-boot.js?v=20261081"></script>
+<link rel="stylesheet" href="/ui-design/tokens.css" />
+<link rel="stylesheet" href="../styles/admin.css?v=20261081" />
+</head>
+<body data-page="gaps">
+<div class="layout">
+
+  <!-- 侧边栏由 layout.js 注入（单点维护），页面只留挂载点 -->
+  <aside class="side" id="appSide"></aside>
+
+  <div class="main">
+    <header class="topbar">
+      <h1>知识缺口</h1>
+      <span class="topbar__sub">零证据查询的汇总：主管看到的是一张「该补什么」的清单，不是一堆日志</span>
+      <div class="topbar__right">
+        <span class="topbar__pill">
+          <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          本机环境 · 真实数据
+        </span>
+      </div>
+    </header>
+
+    <main class="content">
+      <div class="stats">
+        <div class="stat">
+          <div class="stat__label"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>未覆盖</div>
+          <div class="stat__num" data-stat="open">—</div>
+          <div class="stat__delta warn" data-stat="openNote">—</div>
+        </div>
+        <div class="stat">
+          <div class="stat__label"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>已覆盖</div>
+          <div class="stat__num" data-stat="covered">—</div>
+          <div class="stat__delta" data-stat="coveredNote">—</div>
+        </div>
+        <div class="stat">
+          <div class="stat__label"><svg viewBox="0 0 24 24"><path d="M4 9h16M4 15h16M10 3 8 21M16 3l-2 18"/></svg>累计提问次数</div>
+          <div class="stat__num" data-stat="hits">—</div>
+          <div class="stat__delta" data-stat="hitsNote">—</div>
+        </div>
+        <div class="stat">
+          <div class="stat__label"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>最集中型号</div>
+          <div class="stat__num" data-stat="topModel" style="font-size:19px">—</div>
+          <div class="stat__delta" data-stat="topModelNote">—</div>
+        </div>
+      </div>
+
+      <div class="toolbar">
+        <div class="tabs" id="gapTabs">
+          <button class="on" data-gs="all">全部</button>
+          <button data-gs="open">未覆盖</button>
+          <button data-gs="covered">已覆盖</button>
+        </div>
+        <div class="search">
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          <input id="searchInput" placeholder="搜索型号 / 问题现象…" />
+        </div>
+        <span style="flex:1"></span>
+        <a class="btn btn--ghost btn--sm" href="index.html">
+          <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5M12 3v12"/></svg>
+          去上传知识源
+        </a>
+      </div>
+
+      <div class="card">
+        <div class="card__head">
+          <h2>缺口清单</h2>
+          <span class="card__head spacer"></span>
+          <span id="gapNote" style="font-size:11.5px;color:#8a97a3">—</span>
+        </div>
+        <div class="tbl-wrap">
+          <table class="tbl">
+            <thead>
+              <tr>
+                <th style="width:110px">设备型号</th>
+                <th>问题现象</th>
+                <th style="width:96px" class="num">出现次数</th>
+                <th style="width:110px">首次出现</th>
+                <th style="width:150px">最近一次</th>
+                <th style="width:110px">状态</th>
+                <th class="cell-actions" style="width:150px">操作</th>
+              </tr>
+            </thead>
+            <tbody id="gapRows"></tbody>
+          </table>
+        </div>
+        <div class="empty" id="gapEmpty" hidden>
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+          当前无知识缺口——说明现有资料覆盖了工程师提出的问题
+        </div>
+      </div>
+      <div class="pager" id="gapPager"></div>
+
+      <div class="hint" style="margin-top:14px">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+        缺口来自「证据不足拒答」的自动归集；对应新知识入库后标记为已覆盖，形成补课闭环。
+        缺口不补，下次同样的问题还是拒答——这张清单就是下一步该做什么。
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- 标记已覆盖：必须指明是哪份知识补上的 -->
+<div class="modal-mask" id="coverModal" hidden>
+  <div class="modal" style="width:520px">
+    <div class="modal__head">
+      <svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+      标记缺口已覆盖
+    </div>
+    <div class="modal__body">
+      <p class="modal__text" id="coverText"></p>
+      <div class="field">
+        <label>由哪份知识覆盖 <span style="color:#c0392b">*</span></label>
+        <select id="coverDoc"></select>
+        <div class="sub">选择实际补上这个缺口的资料；标记后该缺口不再出现在未覆盖列表。</div>
+      </div>
+    </div>
+    <div class="modal__foot">
+      <button class="btn btn--ghost" data-close type="button">取消</button>
+      <button class="btn btn--primary" id="confirmCover" type="button">确认已覆盖</button>
+    </div>
+  </div>
+</div>
+
+<div class="toasts" id="toasts"></div>
+<script src="../adapters/real-api.js?v=20261081"></script>
+<script src="../adapters/logs-api.js?v=20261081"></script>
+<script src="../controllers/layout.js?v=20261081"></script>
+<script src="../controllers/app.js?v=20261081"></script>
+<script src="../controllers/gaps.js?v=20261081"></script>
+<script src="../controllers/preview.js?v=20261082"></script>
+</body>
+</html>

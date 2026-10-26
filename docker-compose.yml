@@ -1,0 +1,83 @@
+# ============================================================
+# 一键启动：app + worker + postgres(pgvector)
+#   cp .env.example .env   # 填 LLM_API_KEY（可选填 ADMIN_INITIAL_PASSWORD / JWT_SECRET）
+#   docker compose up -d --build
+#   → http://localhost:8000/health
+# ============================================================
+
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    container_name: moqian-rag-db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-moqian}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-moqian}
+      POSTGRES_DB: ${POSTGRES_DB:-moqian}
+    ports:
+      - "127.0.0.1:5433:5432"          # 本机直连用 5433，避免与本机已有 PG 冲突
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-moqian} -d ${POSTGRES_DB:-moqian}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  app:
+    build:
+      context: .
+      args:
+        # 国内网络下默认走清华源；想回官方源就在 .env 里设 PIP_INDEX_URL=https://pypi.org/simple
+        PIP_INDEX_URL: ${PIP_INDEX_URL:-https://pypi.tuna.tsinghua.edu.cn/simple}
+    container_name: moqian-rag-app
+    env_file:
+      - .env
+    environment:
+      # 容器内用服务名连库，覆盖 .env 里的本机地址
+      DATABASE_URL: postgresql://${POSTGRES_USER:-moqian}:${POSTGRES_PASSWORD:-moqian}@db:5432/${POSTGRES_DB:-moqian}
+      APP_ENV: docker
+      # 容器内访问宿主机的 Ollama（D14）；本机直跑时用 .env 里的 localhost 地址
+      EMBEDDING_BASE_URL: ${EMBEDDING_BASE_URL_DOCKER:-http://host.docker.internal:11434/v1}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data            # 原始资料（只读挂载更安全，如需写派生数据则保持可写）
+    depends_on:
+      db:
+        condition: service_healthy
+    command:
+      - sh
+      - -c
+      - python -m app.migrate && python -m app.seed_admin && uvicorn app.main:app --host 0.0.0.0 --port 8000
+
+  # 常驻 worker：消费 jobs 表（S1 起）。与 app 同镜像，只是换入口
+  worker:
+    build:
+      context: .
+      args:
+        PIP_INDEX_URL: ${PIP_INDEX_URL:-https://pypi.tuna.tsinghua.edu.cn/simple}
+    container_name: moqian-rag-worker
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-moqian}:${POSTGRES_PASSWORD:-moqian}@db:5432/${POSTGRES_DB:-moqian}
+      APP_ENV: docker
+      EMBEDDING_BASE_URL: ${EMBEDDING_BASE_URL_DOCKER:-http://host.docker.internal:11434/v1}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./data:/app/data
+    depends_on:
+      db:
+        condition: service_healthy
+      app:
+        condition: service_started   # 等 app 跑完迁移，避免 worker 抢在建表前
+    command: ["python", "-m", "app.worker"]
+    healthcheck:
+      # 镜像里的 HEALTHCHECK 探的是 8000 端口，worker 不起 HTTP 服务，这里必须关掉
+      disable: true
+
+volumes:
+  pgdata:

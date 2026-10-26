@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>系统配置 · 售后知识助手管理台</title>
+<link rel="icon" type="image/svg+xml" href="../favicon.svg" />
+<script src="../controllers/theme-boot.js?v=20261081"></script>
+<link rel="stylesheet" href="/ui-design/tokens.css" />
+    <link rel="stylesheet" href="../styles/admin.css?v=20261081" />
+</head>
+<body data-page="config">
+<div class="layout">
+
+  <!-- 侧边栏由 layout.js 注入（单点维护），页面只留挂载点 -->
+  <aside class="side" id="appSide"></aside>
+
+  <div class="main">
+    <header class="topbar">
+      <h1>系统配置</h1>
+      <span class="topbar__sub">换行业只换配置：模型端点、检索参数、文案与安全词表都由这里下发</span>
+      <div class="topbar__right">
+        <span class="topbar__pill">
+          <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          本机环境 · 真实配置（app_config）
+        </span>
+      </div>
+    </header>
+
+    <main class="content">
+      <!-- 配置分区：表单仍全部在 DOM 里，只切显隐；保存仍是"保存全部配置"，
+           未保存改动跨页签保留（页签切换不会重置表单）。 -->
+      <nav class="config-tabsbar" aria-label="配置分区">
+        <div class="tabs" id="cfgTabs" role="tablist" aria-label="配置分区">
+          <button type="button" role="tab" aria-selected="true" data-tab="model" class="on">模型与检索</button>
+          <button type="button" role="tab" aria-selected="false" data-tab="interface">界面与品牌</button>
+          <button type="button" role="tab" aria-selected="false" data-tab="security">安全与登录</button>
+          <button type="button" role="tab" aria-selected="false" data-tab="diagnostics">运行时诊断</button>
+        </div>
+        <span class="config-tabsbar__hint" id="cfgTabHint">模型端点、向量与重排、检索参数</span>
+      </nav>
+
+      <!-- 生效状态：保存后哪些组真的会改变运行时行为，由后端 effect 逐组标注 -->
+      <div class="card" id="effectCard" data-panel="diagnostics" style="margin-bottom:16px">
+        <div class="card__head">
+          <h2>生效状态</h2>
+          <span class="card__head spacer"></span>
+          <span style="font-size:11.5px;color:#8a97a3">LLM / embedding / 检索 / 安全词表 / 浮层文案 / 品牌 / reranker / 验证码 / 自测入口 下一次请求生效</span>
+        </div>
+        <div class="card__body" id="effectBox">
+          <div class="empty">正在读取配置…</div>
+        </div>
+      </div>
+
+      <!-- 运行时真实生效值：与上面的"配置值"分开显示，避免把已保存误读成已生效 -->
+      <div class="card" id="runtimeCard" data-panel="diagnostics" style="margin-bottom:16px">
+        <div class="card__head">
+          <h2>当前运行时（进程内真实生效值）</h2>
+          <span class="card__head spacer"></span>
+          <span style="font-size:11.5px;color:#8a97a3">来源：环境变量为底 + 已保存且已接线的配置覆盖</span>
+        </div>
+        <div class="card__body" id="runtimeBox">
+          <div class="empty">正在读取配置…</div>
+        </div>
+      </div>
+
+      <!-- 大模型服务 -->
+      <div class="card" data-panel="model" style="margin-bottom:16px">
+        <div class="card__head">
+          <h2>大模型服务</h2>
+          <span class="card__head spacer"></span>
+          <span style="font-size:11.5px;color:#8a97a3">OpenAI 兼容三件套直连，不经过网关</span>
+        </div>
+        <div class="card__body">
+          <div class="field-row-2">
+            <div class="field">
+              <label>服务地址（Base URL）</label>
+              <input id="cfgLlmUrl" />
+              <div class="sub">示例：云端 https://api.deepseek.com；内网 http://localhost:11434</div>
+            </div>
+            <div class="field">
+              <label>模型名</label>
+              <input id="cfgLlmModel" />
+              <div class="sub">切换模型后必须重跑同一评测用例集做回归对比</div>
+            </div>
+            <div class="field">
+              <label>API 密钥</label>
+              <input id="cfgLlmKey" type="password" disabled placeholder="正在读取…" />
+              <div class="sub">密钥由部署环境变量 LLM_API_KEY 管理，后台只显示是否已配置（固定掩码），不接受明文写入</div>
+            </div>
+            <div class="field">
+              <label>超时（秒）</label>
+              <input id="cfgLlmTimeout" type="number" min="5" max="600" />
+              <div class="sub">超时即按失败话术降级，不呈现半成品内容；保存后下一次问答生效</div>
+            </div>
+          </div>
+          <div class="detail__ops">
+            <button class="btn btn--ghost" id="btnTestLlm">
+              <svg viewBox="0 0 24 24"><path d="M13 2 3 14h9l-1 8 10-12h-9z"/></svg>
+              连通性测试
+            </button>
+            <span style="font-size:11.5px;color:#8a97a3">用「已保存的 LLM 配置（缺省回落到环境变量）」真实调用一次模型，验证地址、密钥与模型名</span>
+          </div>
+          <div id="llmTest"></div>
+        </div>
+      </div>
+
+      <!-- 向量与重排 -->
+      <div class="card" data-panel="model" style="margin-bottom:16px">
+        <div class="card__head">
+          <h2>向量与重排端点</h2>
+          <span class="card__head spacer"></span>
+          <span style="font-size:11.5px;color:#8a97a3">可替换：云端 API 或内网 Xinference</span>
+        </div>
+        <div class="card__body">
+          <div class="field" style="margin-bottom:14px">
+            <label>启用重排（reranker）</label>
+            <label class="switch">
+              <input type="checkbox" id="cfgRrkEnabled" />
+              <i></i><span id="cfgRrkState">已关闭 · 仅 RRF 融合</span>
+            </label>
+            <div class="sub">关闭时只用 RRF 融合；开启后对约 30 条候选精排（腾讯云 AI Search /v1/rerank），失败或超时自动回退 RRF，不阻断回答</div>
+          </div>
+          <div class="field-row-2">
+            <div class="field">
+              <label>embedding 服务地址</label>
+              <input id="cfgEmbUrl" />
+            </div>
+            <div class="field">
+              <label>embedding 模型 / 维度</label>
+              <div style="display:flex;gap:10px">
+                <input id="cfgEmbModel" style="flex:2" />
+                <input id="cfgEmbDim" type="number" style="flex:1" />
+              </div>
+              <div class="sub">baseUrl / 模型保存后下一次查询生效；维度不随配置改变——改维度需重新向量化全部证据单元</div>
+            </div>
+            <div class="field">
+              <label>重排（reranker）服务地址</label>
+              <input id="cfgRrkUrl" />
+            </div>
+            <div class="field">
+              <label>重排模型</label>
+              <input id="cfgRrkModel" />
+              <div class="sub">只对约 30 条候选精排，精度与延迟的平衡点；保存后下一次问答生效，密钥由环境变量管理，失败自动回退 RRF</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 检索参数 -->
+      <div class="card" data-panel="model" style="margin-bottom:16px">
+        <div class="card__head">
+          <h2>检索参数</h2>
+          <span class="card__head spacer"></span>
+          <span style="font-size:11.5px;color:#8a97a3">调这些数字会直接改变回答与拒答行为，改完请重跑评测</span>
+        </div>
+        <div class="card__body">
+          <div class="field-row-2">
+            <div class="field">
+              <label>每路召回条数（Dense / BM25 各取 top N）</label>
+              <input id="cfgRecall" type="number" min="1" max="100" />
+            </div>
+            <div class="field">
+              <label>融合方式</label>
+              <select id="cfgFusion">
+                <option value="RRF">RRF（无需调参，默认）</option>
+                <option value="weighted">加权求和（需调权重）</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>重排后取用条数（喂给模型的证据数）</label>
+              <input id="cfgTopK" type="number" min="1" max="50" />
+            </div>
+            <div class="field">
+              <label>证据门槛阈值（低于此分判为证据不足）</label>
+              <input id="cfgThreshold" type="number" step="0.01" min="0" max="1" />
+              <div class="sub">调高 → 答得更保守、拒答变多；调低 → 误拒变少、编造风险上升</div>
+            </div>
+          </div>
+          <div class="hint">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+            门槛与拒答率是一对：改这里之后，请回到「评测面板」确认漏拒率与误拒率没有恶化。
+            检索参数已接线：保存后下一次问答生效（embedding/reranker 不在本组）。
+          </div>
+        </div>
+      </div>
+
+      <!-- 助手界面 -->
+      <div class="card" data-panel="interface" style="margin-bottom:16px">
+        <div class="card__head">
+          <h2>助手界面（行业词汇在这里注入）</h2>
+          <span class="card__head spacer"></span>
+          <span style="font-size:11.5px;color:#8a97a3">widget 代码内不写死任何行业词</span>
+        </div>
+        <div class="card__body">
+          <div class="field">
+            <label>欢迎语</label>
+            <input id="cfgWelcome" />
+          </div>
+          <div class="field">
+            <label>示例问题（每行一条，最多 3 条）</label>
+            <textarea id="cfgSamples" rows="3"></textarea>
+          </div>
+          <div class="field-row-2">
+            <div class="field">
+              <label>转人工文案</label>
+              <input id="cfgHandoff" />
+            </div>
+            <div class="field">
+              <label>助手浮层品牌色</label>
+              <div class="color-row">
+                <input type="color" id="cfgBrand" value="#0f7a52" />
+                <input id="cfgBrandHex" style="flex:1" />
+              </div>
+              <div class="swatches" id="widgetSwatches"></div>
+              <div class="sub">写入 widget 浮层与发送按钮，可与后台主色不同；保存后浮层下一次加载生效</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 品牌与外观 -->
+      <div class="card" data-panel="interface" style="margin-bottom:16px">
+        <div class="card__head">
+          <h2>品牌与外观</h2>
+          <span class="card__head spacer"></span>
+          <span style="font-size:11.5px;color:#8a97a3">换客户只改这里：名称、标识、主色与后台界面入口</span>
+        </div>
+        <div class="card__body">
+          <div class="field-row-2">
+            <div class="field">
+              <label>系统名称（左侧导航栏与页面标题）</label>
+              <input id="cfgSystemName" />
+              <div class="sub">默认「知识助手管理台」；保存后侧栏标题与登录页即时更新</div>
+            </div>
+            <div class="field">
+              <label>登录页产品名</label>
+              <input id="cfgProductName" />
+              <div class="sub">登录卡片上的名称，可与系统名称不同；保存后登录页生效</div>
+            </div>
+            <div class="field">
+              <label>机构名（登录页页脚）</label>
+              <input id="cfgOrgName" />
+            </div>
+            <div class="field">
+              <label>后台主色</label>
+              <div class="color-row">
+                <input type="color" id="cfgPrimary" value="#0f7a52" />
+                <input id="cfgPrimaryHex" style="flex:1" />
+              </div>
+              <div class="swatches" id="primarySwatches"></div>
+              <div class="sub">作用于侧栏、按钮与链接等全局主色；保存后所有后台页面生效</div>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>平台标识（Logo）</label>
+            <div class="logo-row">
+              <span class="logo-box" id="logoBox"></span>
+              <div style="min-width:0;flex:1">
+                <div class="logo-drop" id="logoDrop">点击选择标识文件（SVG / PNG，≤100KB，建议 1:1）</div>
+                <div class="sub" id="logoNote">正在读取…</div>
+              </div>
+              <input type="file" id="logoFile" accept="image/svg+xml,image/png,.svg,.png" hidden />
+            </div>
+            <div class="sub" id="logoHint">支持 SVG / PNG，≤100KB，建议 1:1；保存后作用于左侧导航与登录页。</div>
+          </div>
+
+          <div class="brand-preview">
+            <div class="brand-preview__side">
+              <span class="mark" id="bprMark"></span>
+              <span id="bprName">知识助手管理台</span>
+            </div>
+            <div class="brand-preview__hint">
+              侧栏预览：名称、标识与主色的改动保存后作用于所有后台页面
+            </div>
+          </div>
+
+          <div class="detail__ops" style="padding-top:12px">
+            <button class="btn btn--ghost" id="btnSaveTheme">
+              <svg viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>
+              仅保存品牌与外观
+            </button>
+            <span style="font-size:11.5px;color:#8a97a3">只提交本卡的系统名称 / 产品名 / 机构名 / 主色 / 标识，写的是和「保存全部配置」同一份品牌配置，不会改动模型、检索与词表</span>
+          </div>
+
+          <!-- 后台界面（v0.21.2）：入口显隐属于"后台长什么样"，不单独占一张卡 -->
+          <div class="detail__section" style="padding:16px 0 0">
+            <div class="detail__label">
+              <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/></svg>
+              后台界面
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="cfgPreview" />
+              <i></i><span id="cfgPreviewText">在后台右下角显示「知识自测」入口</span>
+            </label>
+            <div class="sub" style="margin-top:6px">
+              已接线：保存后立即隐藏/显示右下角入口并收起面板；只影响入口，抽测仍记
+              <code>channel=admin_preview</code>，从不入统计。
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 安全与登录 -->
+      <div class="card" data-panel="security" style="margin-bottom:16px">
+        <div class="card__head">
+          <h2>安全与登录</h2>
+          <span class="card__head spacer"></span>
+          <span style="font-size:11.5px;color:#8a97a3">登录策略由后台统一下发，登录页不再有本地开关</span>
+        </div>
+        <div class="card__body">
+          <div class="field-row-2">
+            <div class="field">
+              <div class="field__label">登录验证码</div>
+              <label class="switch">
+                <input type="checkbox" id="cfgCaptcha" />
+                <i></i><span id="cfgCaptchaText">启用登录验证码</span>
+              </label>
+              <div class="sub">已接线：开启后登录页拉取一次性图形验证码（5 分钟过期），登录必须带验证码；
+                关闭后登录不再校验。验证码挑战只存答案哈希，不存明文。</div>
+            </div>
+            <div class="field">
+              <div class="field__label">演示站总开关</div>
+              <label class="switch">
+                <input type="checkbox" id="cfgDemoEnabled" />
+                <i></i><span id="cfgDemoText">开放演示站</span>
+              </label>
+              <div class="sub">已接线：关闭后演示站立即暂停——即使链接里带着入口码，也不再建立会话、
+                不产生回答，浮层显示「这个演示需要从官网入口进入」。重新打开即时恢复，
+                不用改环境变量、不用重启。只收窄不放大：DEMO_ENABLED=false 的部署不会被它打开。</div>
+            </div>
+            <div class="field">
+              <label>账号策略（只读说明）</label>
+              <div class="sub" style="margin-top:4px;line-height:1.9">
+                · 两级角色：管理员 / 普通用户，不做细粒度 RBAC（只在可见范围上有差异）<br/>
+                · 账号即工号：全平台唯一、不可修改、不可复用<br/>
+                · 凭据来源分「企业域账号」与「平台密码」；域账号由企业统一管理，平台不保存密码<br/>
+                · 平台密码账号：初始密码由管理员设定、本人首次登录后必须修改；重置生成一次性临时密码，有效期 24 小时、只显示一次
+              </div>
+            </div>
+          </div>
+          <div class="detail__section" style="padding:14px 0 0">
+            <div class="detail__label">
+              <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+              身份接入（部署期决定，page 内只读）
+            </div>
+            <div class="sub" style="line-height:1.9" id="idSources">
+              · 按现场能力从强到弱使用：网关 SSO → 宿主注入当前操作者工号 → 工号+密码 → 未识别<br/>
+              · 任何一级失败都降级而不阻断：未识别会话照常可用，只不计入按人统计<br/>
+              · 身份是「声明 + 在册校验」，不是认证——不能用于任何授权；治理域仍走管理员自身认证
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 安全词表 -->
+      <div class="card" data-panel="security" style="margin-bottom:16px">
+        <div class="card__head">
+          <h2>安全规则词表</h2>
+          <span class="card__head spacer"></span>
+          <span style="font-size:11.5px;color:#8a97a3">命中即不生成操作步骤，只引用安规原文</span>
+        </div>
+        <div class="card__body">
+          <div class="chips" id="safetyChips"></div>
+          <div class="hint">
+            <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            词表由交付配置注入，不写死在产品里；换行业只需换这张表。安全词表已接线：
+            保存后下一次问答即按新词表拦截（空表回退环境变量/默认词表）。
+          </div>
+        </div>
+      </div>
+
+      <div class="detail__ops config-actions" style="padding-bottom:8px">
+        <button class="btn btn--primary" id="btnSaveConfig">
+          <svg viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>
+          保存全部配置
+        </button>
+        <button class="btn btn--ghost" id="btnResetConfig">还原为已保存值</button>
+        <span class="tag tag--amber" id="dirtyTag" hidden>有未保存改动</span>
+        <span class="spacer"></span>
+        <span style="font-size:11.5px;color:#8a97a3">保存写入 app_config；生效范围以顶部「生效状态」为准</span>
+      </div>
+    </main>
+  </div>
+</div>
+
+<div class="toasts" id="toasts"></div>
+<script src="../adapters/real-api.js?v=20261081"></script>
+<script src="../adapters/config-api.js?v=20261081"></script>
+<script src="../controllers/layout.js?v=20261081"></script>
+<script src="../controllers/app.js?v=20261081"></script>
+<script src="../controllers/config.js?v=20261081"></script>
+<script src="../controllers/preview.js?v=20261082"></script>
+</body>
+</html>

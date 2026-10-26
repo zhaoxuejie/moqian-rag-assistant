@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>解析任务 · 售后知识助手管理台</title>
+<link rel="icon" type="image/svg+xml" href="../favicon.svg" />
+<script src="../controllers/theme-boot.js?v=20261081"></script>
+<link rel="stylesheet" href="/ui-design/tokens.css" />
+    <link rel="stylesheet" href="../styles/admin.css?v=20261081" />
+</head>
+<body data-page="jobs">
+<div class="layout">
+
+  <!-- 侧边栏由 layout.js 注入（单点维护），页面只留挂载点 -->
+  <aside class="side" id="appSide"></aside>
+
+  <!-- ===== 主区域 ===== -->
+  <div class="main">
+    <header class="topbar">
+      <h1>解析任务</h1>
+      <span class="topbar__sub">文件 → 解析 → 切片 → 元数据标注 → 向量化入库</span>
+      <div class="topbar__right">
+        <span class="topbar__pill">
+          <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          本机环境 · 真实数据
+        </span>
+        <button class="btn btn--ghost btn--sm" id="btnRefresh">
+          <svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+          刷新
+        </button>
+      </div>
+    </header>
+
+    <main class="content">
+      <!-- 四张状态卡：数字全部由 app.js 从真实任务统计（/admin/jobs?withStats）派生 -->
+      <div class="stats">
+        <div class="stat">
+          <div class="stat__label"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m10 8 6 4-6 4z"/></svg>运行中</div>
+          <div class="stat__num" data-stat="running">—</div>
+          <div class="stat__delta" data-stat="runningNote">—</div>
+        </div>
+        <div class="stat">
+          <div class="stat__label"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>排队中</div>
+          <div class="stat__num" data-stat="queued">—</div>
+          <div class="stat__delta" data-stat="queuedNote">—</div>
+        </div>
+        <div class="stat">
+          <div class="stat__label"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>失败</div>
+          <div class="stat__num" data-stat="failed">—</div>
+          <div class="stat__delta warn" data-stat="failedNote">—</div>
+        </div>
+        <div class="stat">
+          <div class="stat__label"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>完成</div>
+          <div class="stat__num" data-stat="done">—</div>
+          <div class="stat__delta up" data-stat="doneNote">—</div>
+        </div>
+      </div>
+
+      <!-- 筛选/搜索：与知识源、用户管理、知识缺口同一套 toolbar 结构 -->
+      <div class="toolbar">
+        <div class="tabs" id="jobStatusTabs">
+          <button class="on" data-js="all">全部</button>
+          <button data-js="running">运行中</button>
+          <button data-js="queued">排队中</button>
+          <button data-js="failed">失败</button>
+          <button data-js="done">完成</button>
+          <button data-js="cancelled">已取消</button>
+        </div>
+        <div class="search">
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          <input id="searchInput" placeholder="搜索知识源 / 格式 / 状态…" />
+        </div>
+        <span style="flex:1"></span>
+      </div>
+
+      <div class="card">
+        <div class="card__head">
+          <h2>任务队列</h2>
+          <span class="card__head spacer"></span>
+          <!-- 计数由 app.js 从真实任务统计派生，不写死 -->
+          <span id="jobNote" style="font-size:11.5px;color:#8a97a3">—</span>
+        </div>
+        <div class="tbl-wrap">
+          <table class="tbl">
+            <thead>
+              <tr>
+                <th style="width:26%">知识源</th>
+                <th style="width:34%">阶段</th>
+                <th style="width:18%">进度</th>
+                <th>开始时间</th>
+                <th class="cell-actions" style="width:130px">操作</th>
+              </tr>
+            </thead>
+            <tbody id="jobRows"></tbody>
+          </table>
+        </div>
+        <div class="empty" id="jobEmpty" hidden>
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          没有匹配的任务，切换状态或清除筛选
+        </div>
+      </div>
+      <div class="pager" id="jobPager"></div>
+      <div class="hint" style="margin-top:14px">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+        真实环境中 worker 每 3 秒回报进度；失败任务不会自动重试，需主管处理源文件后手动重新解析。扫描件 OCR 置信度不足是最常见的失败原因。
+      </div>
+    </main>
+  </div>
+</div>
+
+<div class="toasts" id="toasts"></div>
+<script src="../adapters/real-api.js?v=20261081"></script>
+<script src="../controllers/layout.js?v=20261081"></script>
+<script src="../controllers/app.js?v=20261081"></script>
+<script src="../controllers/preview.js?v=20261082"></script>
+</body>
+</html>

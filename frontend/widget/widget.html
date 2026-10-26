@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>售后知识助手</title>
+<link rel="stylesheet" href="/ui-design/tokens.css">
+  <link rel="stylesheet" href="styles/widget.css">
+<script>
+  /* 直接打开（无宿主）时自绘原型同款 400×640 浮层；被 loader 嵌入时铺满 iframe 外壳 */
+  document.documentElement.classList.toggle('w-standalone', window.parent === window);
+</script>
+</head>
+<!-- 真实 chat_widget 的 iframe 内容页：DOM 与浮层面板保持一致。
+     浮层入口按钮与 400×640 外壳由宿主页的 loader.js 负责，本页只渲染面板内部。 -->
+<body class="w-embed">
+
+<!-- 聊天面板（原型 #wPanel 同结构；iframe 内常驻展开） -->
+<section id="wPanel" class="w-panel">
+  <header class="w-head">
+    <div class="w-head__id">
+      <span class="w-head__logo">
+        <svg viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+      </span>
+      <div>
+        <div class="w-head__title">售后知识助手</div>
+        <div class="w-head__sub" id="wCtxLine">正在载入当前工单上下文…</div>
+      </div>
+      <!-- 身份标签：只表达"系统认不认得你"，未识别时转琥珀（PRD §2.3） -->
+      <span class="w-idtag" id="wIdTag" title="身份来源由部署期接入方式决定">识别中…</span>
+    </div>
+    <div class="w-head__ops">
+      <button class="w-iconbtn" id="wHandoffHead" title="转人工">
+        <svg viewBox="0 0 24 24"><path d="M3 14h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-5a9 9 0 0 1 18 0v5a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3"/></svg>
+      </button>
+      <button class="w-iconbtn" id="wClose" title="收起">
+        <svg viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- 弱网状态条：只在浏览器真实 offline 事件时显示（D-004 未实现断网自动重发） -->
+  <div class="w-netbar" id="wNetbar" hidden>
+    <svg viewBox="0 0 24 24"><line x1="2" x2="22" y1="2" y2="22"/><path d="M8.5 16.5a5 5 0 0 1 7 0"/><path d="M2 8.82a15 15 0 0 1 4.17-2.65M10.66 5c4.01-.36 8.14.9 11.34 3.76"/><path d="M16.85 11.25a10 10 0 0 0-2.2-1.4M5 13a10 10 0 0 1 5.24-2.76"/><path d="M12 20h.01"/></svg>
+    <span id="wNetText">网络已断开，恢复后请重新发送。</span>
+  </div>
+
+  <!-- 未识别身份提示条（不阻塞任何操作，只说明不计入个人统计） -->
+  <div class="w-idnote" id="wIdNote" hidden>
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+    <span id="wIdNoteText">本次访问未识别身份，问答可以正常使用，但不会计入个人统计与「我的收藏」。</span>
+  </div>
+
+  <div class="w-body" id="wBody"><!-- 消息流由 app.js 渲染 --></div>
+
+  <footer class="w-foot">
+    <div class="w-input">
+      <textarea id="wInput" rows="1" placeholder="描述故障现象，如：HY-E006 抱闸故障伴周期性异响…"></textarea>
+      <button id="wSend" class="w-send" title="发送">
+        <svg viewBox="0 0 24 24"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+      </button>
+    </div>
+    <!-- 演示额度：只显示「本次会话还可提问 N 次」，每日额度不下发（运营参数不是产品信息） -->
+    <div class="w-quota" id="wQuota" hidden></div>
+    <div class="w-foot__hint">回答仅供排查参考，安全作业以现行手册与安规为准</div>
+  </footer>
+</section>
+
+<!-- 转人工弹层（字段全部来自 POST /widget/handoff 的真实返回） -->
+<div class="w-modal" id="wHandoffModal" hidden>
+  <div class="w-modal__box">
+    <div class="w-modal__head">
+      <svg viewBox="0 0 24 24"><path d="M3 14h3a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-5a9 9 0 0 1 18 0v5a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3"/></svg>
+      <h3>转接售后值班工程师</h3>
+    </div>
+    <p class="w-modal__lead">以下内容将一并带给接手人，无需向客户复述：</p>
+    <ul class="w-carry" id="wCarryList"></ul>
+    <div class="w-hotline">
+      <svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+      <div><b id="wHotline">—</b><span id="wHotlineMeta">正在获取值班信息…</span><br/><span id="wHotlineNote"></span></div>
+    </div>
+    <div class="w-modal__ops">
+      <button class="w-btn w-btn--ghost" id="wHandoffCancel">取消</button>
+      <button class="w-btn w-btn--primary" id="wHandoffOk">我已知晓，马上联系</button>
+    </div>
+  </div>
+</div>
+
+<!-- toast -->
+<div class="w-toasts" id="wToasts"></div>
+
+<script src="adapters/api.js"></script>
+<script src="controllers/app.js"></script>
+</body>
+</html>

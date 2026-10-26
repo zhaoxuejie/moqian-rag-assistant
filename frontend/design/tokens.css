@@ -1,0 +1,18 @@
+/* ============================================================
+   设计令牌 · 单一来源（后台 + Widget 共用）
+   口径：取自已确认原型的 :root，只收两端完全一致的令牌；
+        两端有差异的令牌（背景、圆角、阴影、侧栏色）留在各自
+        styles 里，保证渲染结果与原型的像素表现一致。
+   约束：本文件由 frontend 自己拥有，不依赖、不读取原型目录；
+        新增/修改令牌必须同时确认两端使用处，避免单端悬空。
+   ============================================================ */
+:root{
+  --green:#0f7a52; --green-rgb:15,122,82; --green-dark:#0b6040; --green-soft:#eef8f3; --green-line:#bfe3d2;
+  --ink:#1f2933; --ink-2:#52606d; --ink-3:#8a97a3;
+  --line:#e3e8ee; --line-2:#eef1f4;
+  --surface:#fff; --surface-2:#f7f9fa;
+  --red:#c0392b; --red-soft:#fdf0ee; --red-line:#f0c7c1;
+  --amber:#9a6a08; --amber-soft:#fdf6e9; --amber-line:#ecd9a8;
+  --blue:#2b5a88; --blue-soft:#f0f5fa;
+  --font:"PingFang SC","Microsoft YaHei","Segoe UI",sans-serif;
+}

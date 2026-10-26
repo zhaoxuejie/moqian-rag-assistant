@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>主管驾驶舱 · 售后知识助手管理台</title>
+<link rel="icon" type="image/svg+xml" href="../favicon.svg" />
+<script src="../controllers/theme-boot.js?v=20261081"></script>
+<link rel="stylesheet" href="/ui-design/tokens.css" />
+    <link rel="stylesheet" href="../styles/admin.css?v=20261081" />
+</head>
+<body data-page="dashboard">
+<div class="layout">
+
+  <!-- 侧边栏由 layout.js 注入（单点维护），页面只留挂载点 -->
+  <aside class="side" id="appSide"></aside>
+
+  <div class="main">
+    <header class="topbar">
+      <h1>主管驾驶舱</h1>
+      <span class="topbar__sub">向上汇报用的账本：用得起来没有、答得准不准、谁还没在用</span>
+      <div class="topbar__right">
+        <span class="topbar__pill">
+          <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          本机环境 · 真实数据
+        </span>
+        <span id="weekTag">—</span>
+        <button class="btn btn--ghost btn--sm" id="btnRefreshDash">
+          <svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+          刷新
+        </button>
+      </div>
+    </header>
+
+    <main class="content">
+      <!-- 身份可识别率状态条（dashboard.js 渲染，数据来自 /admin/stats/recognizability） -->
+      <div id="idBar"></div>
+
+      <div class="stats">
+        <div class="stat">
+          <div class="stat__label"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>本周提问量</div>
+          <div class="stat__num" data-stat="questions">—</div>
+          <div class="stat__delta" data-stat="questionsNote">—</div>
+        </div>
+        <div class="stat">
+          <div class="stat__label"><svg viewBox="0 0 24 24"><path d="m12 2 3.09 6.26L22 9.27l-5 4.87L18.18 22 12 18.56 5.82 22 7 14.14l-5-4.87 6.91-1.01z"/></svg>北极星：已解决标记率</div>
+          <div class="stat__num" data-stat="northStar">—</div>
+          <div class="stat__delta up" data-stat="northStarNote">—</div>
+        </div>
+        <div class="stat">
+          <div class="stat__label"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>拒答率</div>
+          <div class="stat__num" data-stat="refusal">—</div>
+          <div class="stat__delta warn" data-stat="refusalNote">—</div>
+        </div>
+        <div class="stat">
+          <div class="stat__label"><svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.8 19.8 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.12 4.18 2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.1 9.9a16 16 0 0 0 6 6l1.26-1.26a2 2 0 0 1 2.11-.45c.9.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg>转人工率</div>
+          <div class="stat__num" data-stat="handoff">—</div>
+          <div class="stat__delta warn" data-stat="handoffNote">—</div>
+        </div>
+      </div>
+
+      <!-- 趋势：柱=提问量（左轴）· 折线=已解决标记率（右轴） -->
+      <div class="card" style="margin-bottom:16px">
+        <div class="card__head">
+          <h2>近 6 周趋势</h2>
+          <span class="card__head spacer"></span>
+          <span style="font-size:11.5px;color:#8a97a3">零依赖内联 SVG：入场动效 + hover 数值提示</span>
+        </div>
+        <div class="card__body" id="trendBox"><!-- dashboard.js 渲染 --></div>
+      </div>
+
+      <div class="split" style="margin-bottom:16px">
+        <!-- 北极星环形 -->
+        <div class="card">
+          <div class="card__head"><h2>北极星拆解</h2></div>
+          <div class="card__body" id="northBox"></div>
+        </div>
+
+        <!-- 高频问题 -->
+        <div class="card">
+          <div class="card__head">
+            <h2>高频问题 Top 5</h2>
+            <span class="card__head spacer"></span>
+            <span style="font-size:11.5px;color:#8a97a3">先补这几类，收益最大</span>
+          </div>
+          <div class="card__body" id="topBox"></div>
+        </div>
+      </div>
+
+      <!-- 首次定位时长分布：纵向柱 -->
+      <div class="card" style="margin-bottom:16px">
+        <div class="card__head">
+          <h2>首次定位故障时间分布</h2>
+          <span class="card__head spacer"></span>
+          <span style="font-size:11.5px;color:#8a97a3">起点=首次提问，终点=已解决标记</span>
+        </div>
+        <div class="card__body" id="bucketBox"></div>
+      </div>
+
+      <!-- 工程师使用统计 -->
+      <div class="card" style="margin-bottom:16px">
+        <div class="card__head">
+          <h2>按工程师使用统计</h2>
+          <span class="card__head spacer"></span>
+          <span style="font-size:11.5px;color:#8a97a3">识别长期未使用者，服务于推广陪跑</span>
+        </div>
+        <div class="tbl-wrap">
+          <table class="tbl">
+            <thead>
+              <tr>
+                <th style="width:120px">工程师</th>
+                <th style="width:110px" class="num">提问次数</th>
+                <th style="width:170px">已解决标记率</th>
+                <th style="width:130px">最近活跃</th>
+                <th>状态</th>
+              </tr>
+            </thead>
+            <tbody id="engRows"></tbody>
+          </table>
+        </div>
+        <div class="metric-legend" style="padding:12px 18px 16px">
+          <span>未识别轮次归入 <b>__unidentified__</b> 桶；可识别率低时按人统计只覆盖可识别会话，需与会话级指标同看。</span>
+        </div>
+      </div>
+
+      <!-- 周报 -->
+      <div class="card">
+        <div class="card__head">
+          <h2>周报导出</h2>
+          <span class="card__head spacer"></span>
+          <button class="btn btn--primary btn--sm" id="btnExport">
+            <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5M12 15V3"/></svg>
+            导出本周周报
+          </button>
+        </div>
+        <div class="tbl-wrap">
+          <table class="tbl">
+            <thead>
+              <tr>
+                <th style="width:180px">统计区间</th>
+                <th style="width:160px">导出时间</th>
+                <th style="width:110px">导出人</th>
+                <th>格式</th>
+              </tr>
+            </thead>
+            <tbody id="reportRows"></tbody>
+          </table>
+        </div>
+        <div class="card__body" id="exportBox" style="padding-top:0"></div>
+        <div class="metric-legend" style="padding:0 18px 16px">
+          <span><b>口径：</b>周报由服务端从与看板同一批聚合生成；缺口与坏例一并附上，避免只报喜</span>
+          <span>导出记录只保存在本页会话内，不写入数据库</span>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<div class="toasts" id="toasts"></div>
+<script src="../adapters/real-api.js?v=20261081"></script>
+<script src="../adapters/evals-api.js?v=20261081"></script>
+<script src="../controllers/layout.js?v=20261081"></script>
+<script src="../controllers/app.js?v=20261081"></script>
+<script src="../controllers/preview.js?v=20261082"></script>
+<script src="../controllers/dashboard.js?v=20261081"></script>
+</body>
+</html>

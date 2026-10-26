@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>知识源管理 · 售后知识助手管理台</title>
+<link rel="icon" type="image/svg+xml" href="../favicon.svg" />
+<script src="../controllers/theme-boot.js?v=20261081"></script>
+<link rel="stylesheet" href="/ui-design/tokens.css" />
+    <link rel="stylesheet" href="../styles/admin.css?v=20261081" />
+</head>
+<body data-page="sources">
+<div class="layout">
+
+  <!-- 侧边栏由 layout.js 注入（单点维护），页面只留挂载点 -->
+  <aside class="side" id="appSide"></aside>
+
+  <!-- ===== 主区域 ===== -->
+  <div class="main">
+    <header class="topbar">
+      <h1>知识源管理</h1>
+      <span class="topbar__sub">知识库的原子是证据单元，不是文件</span>
+      <div class="topbar__right">
+        <span class="topbar__pill">
+          <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          本机环境 · 真实数据
+        </span>
+      </div>
+    </header>
+
+    <main class="content">
+      <!-- 统计卡数字全部由 app.js renderStats() 从真实接口数据派生，不在此写死 -->
+      <div class="stats">
+        <div class="stat">
+          <div class="stat__label"><svg viewBox="0 0 24 24"><path d="M4 22h14a2 2 0 0 0 2-2V7l-5-5H6a2 2 0 0 0-2 2z"/></svg>知识源</div>
+          <div class="stat__num" data-stat="docCount">—</div>
+          <div class="stat__delta" data-stat="docDelta">—</div>
+        </div>
+        <div class="stat">
+          <div class="stat__label"><svg viewBox="0 0 24 24"><path d="M4 9h16M4 15h16M10 3 8 21M16 3l-2 18"/></svg>证据单元</div>
+          <div class="stat__num" data-stat="chunkCount">—</div>
+          <div class="stat__delta" data-stat="chunkDelta">—</div>
+        </div>
+        <div class="stat">
+          <div class="stat__label"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>今日问答</div>
+          <div class="stat__num" data-stat="todayQa">—</div>
+          <div class="stat__delta up" data-stat="qaDelta">—</div>
+        </div>
+        <div class="stat">
+          <div class="stat__label"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>待补知识缺口</div>
+          <div class="stat__num" data-stat="gapCount">—</div>
+          <div class="stat__delta warn" data-stat="gapDelta">—</div>
+        </div>
+      </div>
+
+      <div class="toolbar">
+        <div class="tabs" id="typeTabs">
+          <button class="on" data-cat="all">全部</button>
+          <button data-cat="manual">手册与文档</button>
+          <button data-cat="faq">FAQ 表格</button>
+          <button data-cat="table">数据表格</button>
+          <button data-cat="ticket">工单数据</button>
+          <button data-cat="drawing">图纸目录</button>
+        </div>
+        <div class="search">
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          <input id="searchInput" placeholder="搜索文件名 / 型号 / 批次…" />
+        </div>
+        <span style="flex:1"></span>
+        <label class="switch" title="归档的知识源默认不显示；勾选后只看已归档，可在此恢复">
+          <input type="checkbox" id="showArchived" />
+          <i></i><span>显示已归档</span>
+        </label>
+        <button class="btn btn--primary" id="btnUpload">
+          <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5M12 3v12"/></svg>
+          上传知识源
+        </button>
+      </div>
+
+      <div class="card">
+        <div class="tbl-wrap">
+          <table class="tbl">
+            <thead>
+              <tr>
+                <th style="width:30%">名称</th>
+                <th>适用型号</th>
+                <th>批次</th>
+                <th>版本 / 生效期</th>
+                <th>证据单元</th>
+                <th>状态</th>
+                <th class="cell-actions" style="width:246px">操作</th>
+              </tr>
+            </thead>
+            <tbody id="docRows"></tbody>
+          </table>
+        </div>
+        <div class="empty" id="emptyState" hidden>
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          没有匹配的知识源，换个关键词或清除筛选
+        </div>
+      </div>
+      <div class="pager" id="docPager"></div>
+    </main>
+  </div>
+</div>
+
+<!-- 上传弹窗 -->
+<div class="modal-mask" id="uploadModal" hidden>
+  <div class="modal">
+    <div class="modal__head">
+      <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5M12 3v12"/></svg>
+      上传知识源
+    </div>
+    <div class="modal__body">
+      <!-- 真实文件选择器：点击虚线区域触发；手册走 PDF/Word/Markdown/TXT，表格走 Excel/CSV -->
+      <input type="file" id="fileInput" accept=".pdf,.docx,.md,.txt,.xlsx,.csv,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/markdown,text/plain,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden />
+      <div class="upload-zone" id="uploadZone">
+        <svg viewBox="0 0 24 24" style="width:26px;height:26px;margin:0 auto 6px"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5M12 3v12"/></svg>
+        点击选择文件，或将文件拖拽到此处<br/>
+        <span style="font-size:11px">手册/文档支持 PDF / Word(.docx) / Markdown(.md) / TXT(.txt)；FAQ 表格支持 Excel（.xlsx）；数据表格（参数/规格/台账）与工单数据支持 Excel（.xlsx）/ CSV；图纸目录在后续批次开放。上传后进入解析队列</span>
+      </div>
+      <div class="upload-err" id="upErr" hidden>
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+        <span></span>
+      </div>
+      <div class="form-grid">
+        <div><label style="font-size:12px;color:#52606d;display:block;margin-bottom:5px">业务大类 <span style="color:#c0392b">*</span></label>
+          <select id="upCategory" style="width:100%;border:1px solid #e3e8ee;border-radius:7px;padding:7px 10px">
+            <option value="manual">手册与文档（PDF / Word / TXT / Markdown）</option>
+            <option value="faq">FAQ 表格（Excel）</option>
+            <option value="table">数据表格（参数 / 规格 / 台账：Excel / CSV）</option>
+            <option value="ticket">工单数据（Excel / CSV 导出：工单号 / 现象 / 处置）</option>
+            <option value="drawing">图纸目录（仅登记图号与位置）</option>
+          </select></div>
+        <div><label style="font-size:12px;color:#52606d;display:block;margin-bottom:5px">文件格式（按文件自动识别，可修正）</label>
+          <select id="upFormat" style="width:100%;border:1px solid #e3e8ee;border-radius:7px;padding:7px 10px"></select></div>
+        <div><label style="font-size:12px;color:#52606d;display:block;margin-bottom:5px">适用设备型号</label>
+          <input id="upModel" style="width:100%;border:1px solid #e3e8ee;border-radius:7px;padding:7px 10px" placeholder="如 ZX-300，全型号可留空" /></div>
+        <div><label style="font-size:12px;color:#52606d;display:block;margin-bottom:5px">适用批次</label>
+          <input id="upBatch" style="width:100%;border:1px solid #e3e8ee;border-radius:7px;padding:7px 10px" placeholder="如 B23；不明确可留空" /></div>
+        <div><label style="font-size:12px;color:#52606d;display:block;margin-bottom:5px">手册版本</label>
+          <input id="upVersion" style="width:100%;border:1px solid #e3e8ee;border-radius:7px;padding:7px 10px" placeholder="如 v3.2；未知可留空" /></div>
+        <div><label style="font-size:12px;color:#52606d;display:block;margin-bottom:5px">生效日期</label>
+          <input id="upEffective" type="date" style="width:100%;border:1px solid #e3e8ee;border-radius:7px;padding:7px 10px" /></div>
+      </div>
+      <div class="hint"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+        上传后进入解析队列，可在「切片预览」中核对章节号与页码是否切对。真实接口只做「建档 + 排队」：POST /admin/documents（multipart）。旧版处置接口本批次未开放，上传不会修改任何既有知识源的状态。</div>
+      <div class="hint-sub">FAQ 表格填报表：<a href="/admin-app/assets/faq-import-template.xlsx" download>下载FAQ模版</a></div>
+    </div>
+    <div class="modal__foot">
+      <button class="btn btn--ghost" data-close>取消</button>
+      <button class="btn btn--primary" id="confirmUpload">创建解析任务</button>
+    </div>
+  </div>
+</div>
+
+<!-- 同型号已有现行版：显式处置旧版（FR-K4「提示存在旧版并要求处理」） -->
+<div class="modal-mask" id="versionModal" hidden>
+  <div class="modal" style="width:560px">
+    <div class="modal__head modal__head--amber">
+      <svg viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01"/><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
+      该型号已有现行版资料（版本处置接口未开放）
+    </div>
+    <div class="modal__body">
+      <p class="modal__text" id="verText"></p>
+      <div class="ver-list" id="verList"></div>
+      <div class="ver-choice">
+        <div class="ver-choice__label">旧版处置方式（必选）</div>
+        <label class="radio">
+          <input type="radio" name="verDisposition" value="keep" checked />
+          <span><b>保留为旧版</b>，继续服务老批次设备（推荐）
+            <em>打「旧版」标签并保持启用；问答按工单的设备批次自动选版</em></span>
+        </label>
+        <label class="radio">
+          <input type="radio" name="verDisposition" value="disable" />
+          <span><b>保留但禁用</b>，不再参与检索
+            <em>资料与证据单元都保留，随时可重新启用，不会物理删除</em></span>
+        </label>
+      </div>
+      <div class="hint">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+        本机环境：版本处置（保留为旧版 / 保留但禁用）接口本批次未开放，下方处置方式仅保留原型结构、不可选择。确认后只会创建解析任务，既有知识源的状态与检索行为不变。
+      </div>
+    </div>
+    <div class="modal__foot">
+      <button class="btn btn--ghost" data-close>返回修改</button>
+      <button class="btn btn--primary" id="confirmVersion">确认上传（不改旧版状态）</button>
+    </div>
+  </div>
+</div>
+
+<div class="toasts" id="toasts"></div>
+<script src="../adapters/real-api.js?v=20261081"></script>
+<script src="../controllers/layout.js?v=20261081"></script>
+<script src="../controllers/app.js?v=20261081"></script>
+<script src="../controllers/preview.js?v=20261082"></script>
+</body>
+</html>

@@ -1,0 +1,60 @@
+# ============================================================
+# moqian-service-assistant · 属性规则
+# 目的：仓库内文本统一以 LF 存储，避免 Windows/Linux 协作时整文件差异
+# ============================================================
+
+# 默认：自动识别文本，文本按 LF 归一化入库
+* text=auto
+
+# ---- 文本：显式声明 ----
+*.md         text
+*.txt        text
+*.html       text
+*.css        text
+*.js         text
+*.mjs        text
+*.cjs        text
+*.ts         text
+*.vue        text
+*.json       text
+*.jsonl      text
+*.yml        text
+*.yaml       text
+*.toml       text
+*.ini        text
+*.cfg        text
+*.py         text
+*.sql        text
+*.csv        text
+.gitignore   text
+.gitattributes text
+Dockerfile   text
+*.sh         text eol=lf
+*.ps1        text eol=crlf
+*.cmd        text eol=crlf
+*.bat        text eol=crlf
+
+# ---- 二进制：不做行尾转换、不参与文本差异 ----
+*.zip        binary
+*.7z         binary
+*.gz         binary
+*.png        binary
+*.jpg        binary
+*.jpeg       binary
+*.gif        binary
+*.webp       binary
+*.ico        binary
+*.pdf        binary
+*.doc        binary
+*.docx       binary
+*.xls        binary
+*.xlsx       binary
+*.ppt        binary
+*.pptx       binary
+*.woff       binary
+*.woff2      binary
+*.ttf        binary
+*.otf        binary
+*.mp4        binary
+*.mp3        binary
+*.wav        binary
