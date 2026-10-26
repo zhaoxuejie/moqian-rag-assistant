@@ -36,7 +36,7 @@ info:
   termsOfService: ""
   contact:
     name: 项目仓库
-    url: https://github.com/zhaoxuejie/moqian-service-assistant-rag-maintenance
+    url: https://github.com/zhaoxuejie/moqian-rag-assistant
   license:
     name: Apache-2.0
   x-id-convention: 所有资源 id 为字符串

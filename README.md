@@ -1,6 +1,6 @@
 # 陌阡制造业售后知识助手
 
-[![CI](https://github.com/zhaoxuejie/moqian-service-assistant-rag-maintenance/actions/workflows/ci.yml/badge.svg)](https://github.com/zhaoxuejie/moqian-service-assistant-rag-maintenance/actions/workflows/ci.yml)
+[![CI](https://github.com/zhaoxuejie/moqian-rag-assistant/actions/workflows/ci.yml/badge.svg)](https://github.com/zhaoxuejie/moqian-rag-assistant/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-Apache--2.0-0f7a52.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.11%2B-3776AB.svg)](pyproject.toml)
 
@@ -208,8 +208,8 @@
 **前置**：Docker；一个 OpenAI 兼容的模型端点；一个 1024 维的 embedding 端点（推荐本机 Ollama + `bge-m3`）。
 
 ```bash
-git clone https://github.com/zhaoxuejie/moqian-service-assistant-rag-maintenance.git
-cd moqian-service-assistant-rag-maintenance
+git clone https://github.com/zhaoxuejie/moqian-rag-assistant.git
+cd moqian-rag-assistant
 
 cp .env.example .env
 # 必填：LLM_BASE_URL / LLM_MODEL / LLM_API_KEY
