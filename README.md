@@ -1,5 +1,9 @@
 # 陌阡制造业售后知识助手
 
+[![CI](https://github.com/zhaoxuejie/moqian-service-assistant-rag-maintenance/actions/workflows/ci.yml/badge.svg)](https://github.com/zhaoxuejie/moqian-service-assistant-rag-maintenance/actions/workflows/ci.yml)
+[![License](https://img.shields.io/badge/license-Apache--2.0-0f7a52.svg)](LICENSE)
+[![Python](https://img.shields.io/badge/python-3.11%2B-3776AB.svg)](pyproject.toml)
+
 > 让每个新工程师背后，站着一整个售后部门的历史经验；每个答案都能核对到原文。
 
 把故障排查从「翻手册 + 问老师傅」变成「按现象问系统」：设备手册、FAQ、历史工单被切成**证据单元**，
@@ -17,7 +21,24 @@
 
 **Docker 一键本地部署** · 自带 30 份虚构演示语料 · Apache-2.0
 
-### 🧠 能力一览
+## 📑 目录
+
+- [🧠 能力一览](#overview)
+- [✨ 功能清单](#features)
+- [📊 评测结果](#eval)
+- [🆚 与"直接丢给大模型"的区别](#why)
+- [👥 适合谁 / 不适合谁](#who)
+- [🖼️ 界面一览](#screens)
+- [🚀 快速开始](#start)
+- [⚙️ 配置](#config)
+- [🏗️ 架构](#arch)
+- [❓ 常见问题](#faq)
+- [🤝 参与贡献](#contrib)
+- [📄 许可](#license)
+
+<a name="overview"></a>
+
+## 🧠 能力一览
 
 <table>
   <tr>
@@ -33,6 +54,8 @@
 </table>
 
 ---
+
+<a name="features"></a>
 
 ## ✨ 功能清单
 
@@ -53,9 +76,11 @@
 
 ---
 
+<a name="eval"></a>
+
 ## 📊 评测结果（仓库内可复现）
 
-首批评测 80 条用例已跑完，管线与线上 `/chat` 完全相同（同一份 `app/rag_runner.py`）：
+首批评测 80 条用例已跑完（2026-10-23，单机跑批），管线与线上 `/chat` 完全相同（同一份 `app/rag_runner.py`）：
 
 | 指标 | 结果 |
 |---|---|
@@ -68,7 +93,11 @@
 口径、样本量与逐题明细见 [`evals/reports/eval-20261023-130141.md`](evals/reports/eval-20261023-130141.md)，
 用例集在 [`evals/cases.yaml`](evals/cases.yaml)，判定逻辑在 `evals/metrics.py`。
 
+> 时延与所用模型、硬件强相关；换模型后请重跑同一套用例，报告会落在 `evals/reports/`。
+
 ---
+
+<a name="why"></a>
 
 ## 🆚 它和"直接把手册丢给大模型"有什么不同
 
@@ -79,6 +108,19 @@
 | 多版本手册混着答 | 命中多个批次时**并列展示并标注批次**，不替工程师做选择 |
 | 安全话题生成"怎么干" | 只引用安规原文，提示联系厂家 |
 | 经验散落在聊天记录 | 工单 / 收藏**人工确认**后才沉淀为新的证据单元 |
+
+<a name="who"></a>
+
+## 👥 适合谁 / 不适合谁
+
+| 适合 | 不适合 |
+|---|---|
+| 设备售后 / 维保团队：有手册、FAQ、历史工单等可解析资料 | 资料只存在老师傅脑子里，没有可解析的文档 |
+| 手册有型号 / 批次差异，需要按条件检索 | 只有一页 FAQ，答案不依赖原文 |
+| 对"答案要能核对到原文"有硬要求（安规、合规、客户审计） | 只想要一个通用聊天机器人 |
+| 想先本地跑通效果、再谈系统集成 | 期望开箱即用的 SaaS，不想配模型与 embedding |
+
+<a name="screens"></a>
 
 ## 🖼️ 界面一览
 
@@ -159,12 +201,14 @@
   </tr>
 </table>
 
+<a name="start"></a>
+
 ## 🚀 快速开始
 
 **前置**：Docker；一个 OpenAI 兼容的模型端点；一个 1024 维的 embedding 端点（推荐本机 Ollama + `bge-m3`）。
 
 ```bash
-git clone https://github.com/your-org/moqian-service-assistant-rag-maintenance.git
+git clone https://github.com/zhaoxuejie/moqian-service-assistant-rag-maintenance.git
 cd moqian-service-assistant-rag-maintenance
 
 cp .env.example .env
@@ -194,6 +238,8 @@ Windows PowerShell 把 `cp -r` 换成 `Copy-Item samples\demo-corpus\* data\inbo
 
 > 没有 Ollama 也能起服务、看界面；但文档入库与检索需要可用的 embedding 端点。
 
+<a name="config"></a>
+
 ## ⚙️ 配置
 
 完整清单见 `.env.example`，最常改的几项：
@@ -206,6 +252,8 @@ Windows PowerShell 把 `cp -r` 换成 `Copy-Item samples\demo-corpus\* data\inbo
 | `RERANKER_PROVIDER` | `none` 只用 RRF；接重排服务时再打开 |
 | `JWT_SECRET` / `ADMIN_INITIAL_*` | 后台登录与初始管理员 |
 | `DEMO_ENABLED` | 公开演示模式（入口码、每日配额），默认关闭 |
+
+<a name="arch"></a>
 
 ## 🏗️ 架构
 
@@ -223,9 +271,27 @@ tests/          pytest
 **模块纪律**：依赖单向 `app → modules`；modules 互不 import；每个模块可独立测试；
 机制放 `modules`，行业词汇（欢迎语、示例问题、安全词表、品牌）由 `app` 注入。
 
-一次问答的链路：浮层上报上下文 → 结构化查询（未知字段留空，不猜型号/批次）→ Dense + BM25 召回 +
-RRF 融合 → 证据门（命中数 / 覆盖率不足则拒答转人工）→ 生成 → 引用逐条回到本轮命中证据集校验 →
-SSE 流式返回。
+```mermaid
+flowchart LR
+    A["工单页 / 宿主系统"] -->|注入上下文| B["浮层"]
+    B -->|提问| C["/chat"]
+    C --> D["结构化查询"]
+    D --> E["稠密 + BM25 检索"]
+    E --> F["RRF 融合"]
+    F --> G{"证据门"}
+    G -->|不足| H["拒答 / 转人工 / 记缺口"]
+    G -->|足够| I["LLM 生成"]
+    I --> J["引用校验"]
+    J --> K["SSE 返回"]
+    U["上传 PDF / Word / Excel"] --> P["解析 + 切片"]
+    P --> W["worker 向量化"]
+    W --> V[("pgvector")]
+    V --> E
+```
+
+同一套检索管线也被评测 runner 复用，所以"评测结果"和"线上效果"不会分叉。
+
+<a name="faq"></a>
 
 ## ❓ 常见问题
 
@@ -241,6 +307,8 @@ SSE 流式返回。
 数据都保存在你自己的 Postgres 里；`.env` 与 `data/` 已在 `.gitignore` 中。
 不要提交密钥与手册原件。
 
+<a name="contrib"></a>
+
 ## 🤝 参与贡献
 
 提交前跑：
@@ -252,6 +320,8 @@ pytest
 
 没有本地 PG 时，需要数据库的用例会自动跳过。PR 请按
 [.github/pull_request_template.md](.github/pull_request_template.md) 填写。
+
+<a name="license"></a>
 
 ## 📄 许可
 

@@ -1,0 +1,55 @@
+name: 🐛 Bug 报告
+description: 部署、问答、后台或评测出现问题时使用
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢反馈！提交前请先搜一下有没有同类 issue。
+        **请不要贴真实客户数据、密钥、手册原件**；日志请脱敏。
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: 发生了什么
+      description: 实际现象 + 你期望的结果
+      placeholder: 提问「XXX」时返回了……，但我期望……
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: 复现步骤
+      placeholder: |
+        1. docker compose up -d --build
+        2. 导入 samples/demo-corpus
+        3. 提问 ……
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: 版本 / 提交
+      description: /health 返回的 version 与 buildSha，或 git rev-parse --short HEAD
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: 涉及模块
+      multiple: true
+      options:
+        - 浮层问答
+        - 知识入库 / 解析
+        - 检索 / 证据门
+        - 后台
+        - 评测
+        - 部署 / 配置
+        - 其它
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: 日志或截图
+      description: docker compose logs 的相关片段（注意脱敏）
+      render: shell

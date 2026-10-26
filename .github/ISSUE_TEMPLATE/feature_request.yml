@@ -1,0 +1,37 @@
+name: ✨ 功能建议
+description: 想要的新能力或改进
+body:
+  - type: markdown
+    attributes:
+      value: |
+        先讲场景，再讲方案——很多"功能"其实是配置或用法问题，场景能让讨论更快收敛。
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: 你遇到什么问题
+      description: 谁、在什么场景下、被什么卡住了
+      placeholder: 维保工程师在……时，需要……，现在只能……
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: 你期望怎么做
+      description: 界面、接口、配置都行；不确定也可以只写目标
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: 考虑过的替代方案
+      description: 现在你是怎么绕过去的？
+
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: 适用范围
+      options:
+        - label: 通用能力（换行业也能用）
+        - label: 制造业售后特有
+        - label: 仅部署 / 运维
