@@ -21,7 +21,6 @@ def health(settings: Settings = Depends(get_settings)) -> dict:
         "status": "ok",
         "app": settings.app_name,
         "version": settings.version,
-        "baseline": settings.baseline,
         "env": settings.app_env,
         # 给人看的环境名（本地环境 / 生产环境），由 .env 的 APP_ENV_LABEL 决定；
         # 判定逻辑永远用 env，不用这个标签。

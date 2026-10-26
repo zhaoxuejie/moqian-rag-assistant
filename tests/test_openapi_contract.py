@@ -5,7 +5,7 @@ CI 会在 pytest 里红，而不是等到联调才发现（实施计划 §7 风�
 
 检查项：
 1. 文件编码/行尾（UTF-8 无 BOM、LF、无制表符）；
-2. 元信息与基线绑定（openapi 3.1、baseline v0.4、状态 draft-s0）；
+2. 元信息（openapi 3.1、版本与 pyproject.toml 对齐）；
 3. 所有 $ref 都能解析；
 4. 每个 operation 有唯一 operationId、summary、已声明的 tag、成功响应；
 5. 前端用到的"主要接口"全部存在（页面→接口不漏项）；
@@ -17,6 +17,7 @@ CI 会在 pytest 里红，而不是等到联调才发现（实施计划 §7 风�
 from __future__ import annotations
 
 import re
+import tomllib
 from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
@@ -165,8 +166,10 @@ def test_contract_is_valid_openapi(spec: dict[str, Any]) -> None:
 
 def test_contract_metadata(spec: dict[str, Any]) -> None:
     assert str(spec["openapi"]).startswith("3.1"), "契约用 OpenAPI 3.1"
-    assert spec["info"]["x-baseline"] == "v0.4", "契约必须绑定文档基线 v0.4"
-    assert spec["info"]["x-status"] == "draft-s0"
+    pyproject = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+    assert spec["info"]["version"] == pyproject["project"]["version"], (
+        "契约版本必须与 pyproject.toml 对齐"
+    )
     assert spec["info"]["x-pending-questions"], "未定项必须集中登记，不能散落在正文"
     for question in spec["info"]["x-pending-questions"]:
         assert question["status"] in {"[待确认]", "已定"}, question["status"]

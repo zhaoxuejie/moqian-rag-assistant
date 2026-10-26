@@ -445,7 +445,6 @@
           ? "版本 v" + ver
             + (sha ? "\n提交 " + sha : "")
             + (data.buildTime ? "\n构建 " + data.buildTime : "")
-            + (data.baseline ? "\n文档基线 " + data.baseline : "")
           : "读到 /health 了，但响应里没有版本号";
         nodes.forEach(function (n) {
           n.textContent = text;

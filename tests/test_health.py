@@ -19,7 +19,7 @@ def test_health_ok() -> None:
     body = r.json()
     assert body["status"] == "ok"
     assert body["app"] == "moqian-service-assistant"
-    assert body["baseline"] == "v0.4"
+    assert "baseline" not in body
 
 
 def test_health_reports_version_and_build() -> None:

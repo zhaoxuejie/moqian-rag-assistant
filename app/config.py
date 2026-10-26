@@ -46,7 +46,6 @@ class Settings(BaseSettings):
     # 顶栏环境标识：只用于**显示**，不参与任何判定（判定看 app_env / demo_enabled）。
     # 本地 .env 写「本地环境」，线上 .env 写「生产环境」——同一份代码两种面貌，不靠代码分支。
     app_env_label: str = "本地环境"
-    baseline: str = "v0.4"
     version: str = Field(default_factory=_detect_version)
     # 构建信息：由部署脚本注入（Dockerfile ARG → ENV），用来回答「线上跑的是哪个提交」。
     # 空值表示不知道，管理台会照实显示，而不是猜。

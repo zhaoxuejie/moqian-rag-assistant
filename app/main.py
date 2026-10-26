@@ -89,7 +89,7 @@ def create_app() -> FastAPI:
     app = FastAPI(
         title=settings.app_name,
         version=settings.version,
-        description=f"制造业设备售后知识助手 · 文档基线 {settings.baseline}",
+        description="陌阡制造业售后知识助手（开源版）",
         docs_url=None if demo_mode else "/docs",
         redoc_url=None if demo_mode else "/redoc",
         openapi_url=None if demo_mode else "/openapi.json",

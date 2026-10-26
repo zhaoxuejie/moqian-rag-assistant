@@ -1,5 +1,5 @@
 # ============================================================
-# moqian-service-assistant · 接口契约（S0 草案）
+# moqian-service-assistant · 接口契约
 #
 # 本文件是前后端唯一的机器可读约定，形状以本文件为准。
 
@@ -7,13 +7,13 @@
 # 本文件的角色：前端（frontend/widget、frontend/admin）与后端（app / modules）唯一的机器可读约定。
 #   改接口 = 改本文件 + 同步前端适配层，缺一不可。
 #
-# 约定（[已定]，来自原型与文档）：
-#   1. JSON 字段用 camelCase（与原型前端一致）；数据库列名 snake_case，转换在 app 层做。
-#   2. 所有 id 以字符串返回（原型 id 形如 "doc-1" / "qa-2481" / "M642"），不暴露自增整数。
+# 约定（已定）：
+#   1. JSON 字段用 camelCase；数据库列名 snake_case，转换在 app 层做。
+#   2. 所有 id 以字符串返回（id 形如 "doc-1" / "qa-2481" / "M642"），不暴露自增整数。
 #   3. 集合接口统一返回 { items, pagination, stats? }；单个资源直接返回对象。
 #   4. 错误统一返回 { code, message, detail? }，code 供前端分支，message 可直接展示。
 #   5. 分页从 1 开始：page / pageSize（默认 20，上限 100）。
-#   6. 数字一律后端算好再返回，前端零重算（原型映射表 §3 数字同源表）。
+#   6. 数字一律后端算好再返回，前端零重算。
 #   7. 身份只做归属与统计，不参与授权；/widget/* 与 /admin/* 凭证双链隔离。
 #
 # 标记说明：[待确认] 表示文档未定、开发中需拍板；集中在 info.x-pending-questions。
@@ -23,15 +23,15 @@ openapi: 3.1.0
 
 info:
   title: 陌阡售后知识助手 · 接口契约
-  version: 0.1.0
-  summary: S0 草案，覆盖 widget 问答链与 admin 治理链
+  version: 1.3.0
+  summary: 覆盖浮层问答链与后台治理链
   description: |
     两条链路的边界就是安全边界：
 
     - **工程师链**：`/widget/*` 与 `/chat` —— 只回答、只记录，不产出授权凭证；
-    - **治理链**：`/admin/*` —— 只接受管理员自身会话凭证，工程师侧 sessionId 不可用（widget spec §10.1）。
+    - **治理链**：`/admin/*` —— 只接受管理员自身会话凭证，工程师侧 sessionId 不可用。
 
-    所有事实性回答的引用由服务端程序校验，非法引用整条剥离（architecture §8 ADR4）。
+    所有事实性回答的引用由服务端程序校验，非法引用整条剥离。
     本契约只描述**形状**，不描述检索与生成策略。
   termsOfService: ""
   contact:
@@ -39,8 +39,6 @@ info:
     url: https://github.com/zhaoxuejie/moqian-service-assistant-rag-maintenance
   license:
     name: Apache-2.0
-  x-baseline: v0.4
-  x-status: draft-s0
   x-id-convention: 所有资源 id 为字符串
   x-json-case: camelCase
   x-pending-questions:
@@ -51,7 +49,7 @@ info:
       decision: JWT HS256，密钥 JWT_SECRET 由 .env 注入
     - id: Q2
       topic: 图形验证码
-      detail: 返回 SVG/PNG base64、独立图片 URL，还是内网部署直接关闭（文档原型默认开启）
+      detail: 返回 SVG/PNG base64、独立图片 URL，还是内网部署直接关闭（默认开启）
       status: "[待确认]"
     - id: Q3
       topic: 知识源上传形态
@@ -548,7 +546,7 @@ paths:
       summary: 知识源列表（含四态统计与筛选）
       description: |
         `withStats=1` 时返回 `stats`（分类计数、证据单元总数），供页面顶部卡片与页脚「共 N 条」；
-        数字必须与本列表同源（原型映射表 §3）。
+        数字必须与本列表同源。
       operationId: listAdminDocuments
       parameters:
         - $ref: "#/components/parameters/Page"
@@ -1674,7 +1672,7 @@ paths:
       tags: [admin-stats]
       summary: 周报（八节，与看板同源）
       description: |
-        周报所有数字由服务端从**同一批聚合**生成，不得另算一套（原型映射表 §3）。
+        周报所有数字由服务端从**同一批聚合**生成，不得另算一套。
         返回结构粒度见 Q5。
       operationId: getAdminWeeklyReport
       parameters:
@@ -1724,7 +1722,7 @@ paths:
       tags: [admin-config]
       summary: 读系统配置
       description: |
-        分组与原型一致：llm / embedding / reranker / retrieval / widget / safety / security / preview / brand。
+        分组包括：llm / embedding / reranker / retrieval / widget / safety / security / preview / brand。
         `widget` 组就是浮层文案与品牌的注入源（纪律 6）；`safety` 组是安全规则词表（纪律 3）。
         密钥类字段只返回 `apiKeySet: true|false`，**不回传明文**。
       operationId: getAdminConfig
@@ -2224,7 +2222,7 @@ components:
 
     Health:
       type: object
-      required: [status, app, version, baseline, env]
+      required: [status, app, version, env]
       properties:
         status:
           type: string
@@ -2234,9 +2232,6 @@ components:
         version:
           type: string
           description: 来自包元数据（pyproject.toml）；APP_VERSION 可覆盖
-        baseline:
-          type: string
-          description: 文档基线，如 v0.4
         env:
           type: string
           enum: [dev, docker, prod]
@@ -2361,7 +2356,7 @@ components:
           description: 场景标签（按工单相关 / 通用排查 等，由 app 层配置）
         scene:
           type: string
-          description: 点击后走哪条演示场景（仅原型用，生产可忽略）
+          description: 点击后走哪条演示场景（仅演示用，生产可忽略）
 
     WidgetConfig:
       type: object
