@@ -17,8 +17,20 @@
 
 **Docker 一键本地部署** · 自带 30 份虚构演示语料 · Apache-2.0
 
-**能力一览**：RAG（稠密 + BM25 + RRF） · 证据门（无据不答） · 引用校验（越界剥离） ·
-批次 / 版本元数据路由 · pgvector 向量检索 · 评测集与判定脚本
+### 🧠 能力一览
+
+<table>
+  <tr>
+    <td align="center" width="33%"><b>🧠 RAG 检索</b><br><sub>稠密向量 + BM25 → RRF 融合</sub></td>
+    <td align="center" width="33%"><b>🧱 pgvector</b><br><sub>向量与业务数据同库</sub></td>
+    <td align="center" width="33%"><b>🚧 证据门</b><br><sub>无据不答，缺口转人工</sub></td>
+  </tr>
+  <tr>
+    <td align="center" width="33%"><b>🔗 引用校验</b><br><sub>越界引用整条剥离</sub></td>
+    <td align="center" width="33%"><b>🗂️ 批次 / 版本路由</b><br><sub>多版本并列并标注批次</sub></td>
+    <td align="center" width="33%"><b>🧪 评测集</b><br><sub>同一管线跑批 + 判定脚本</sub></td>
+  </tr>
+</table>
 
 ---
 
